@@ -6,15 +6,42 @@ First, run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+You can import the Partnerships skillz data from [test-data](/test-data/skill-matrix-v1-2026-04-04T07-21-05-085Z.json). The file format is essentially:
+
+```json
+{
+  "format": "skill-matrix-export",
+  "version": 1,
+  "exportedAt": "2026-04-04T06:55:19.317Z",
+  "data": {
+    "skills": [
+      "UI",
+    ],
+    "members": [
+      "Ayelen",
+    ],
+    "projects": [
+      "Google Classroom Add-On",
+    ],
+    "projectAssignments": {
+      "Google Classroom Add-On": {
+        "skills": [
+          "Auth",
+        ],
+        "members": [
+          "Ayelen",  
+        ]
+      },
+    },
+},
+}
+
+```
+
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
