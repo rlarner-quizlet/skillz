@@ -45,7 +45,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 'use client'
 
 import Image from 'next/image'
-import { useState, useEffect, useSyncExternalStore } from 'react'
+import { useState, useEffect, useSyncExternalStore, useRef } from 'react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -505,9 +505,6 @@ export default function Home() {
   const resetAll = () =>
     setState({ skills: [], members: [], projects: [], projectAssignments: {}, matrix: {} })
 
-  const totalCells = members.length * skills.length
-  const filledCells = members.reduce((a, m) => a + skills.filter(s => getLevel(m, s) > 0).length, 0)
-  const coveragePct = totalCells > 0 ? Math.round((filledCells / totalCells) * 100) : 0
   const uncovered = skills.filter(s => !members.some(m => getLevel(m, s) > 0)).length
 
   const TABS: { id: Tab; label: string }[] = [
@@ -534,12 +531,11 @@ export default function Home() {
 
         {/* Summary cards */}
         {(members.length > 0 || skills.length > 0 || projects.length > 0) && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
             {[
               { label: 'Team members',    value: members.length, warn: false },
               { label: 'Skills tracked',  value: skills.length,  warn: false },
               { label: 'Projects',        value: projects.length, warn: false },
-              { label: 'Overall coverage',value: `${coveragePct}%`, warn: coveragePct < 50 },
               { label: 'Uncovered skills',value: uncovered,      warn: uncovered > 0 },
             ].map(({ label, value, warn }) => (
               <div key={label} className="bg-white rounded-xl border border-gray-100 p-4">
@@ -1086,11 +1082,16 @@ function ManageTab({
   const [pi, setPi] = useState('')
   const [bulkImport, setBulkImport] = useState('')
   const [ioMessage, setIoMessage] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const submitSkill = () => { addSkill(si); setSi('') }
   const submitMember = () => { addMember(mi); setMi('') }
   const submitProject = () => { addProject(pi); setPi('') }
   const submitImport = () => {
+    if (!bulkImport.trim()) {
+      fileInputRef.current?.click()
+      return
+    }
     const result = importData(bulkImport)
     setIoMessage({ tone: result.ok ? 'ok' : 'error', text: result.message })
     if (result.ok) setBulkImport('')
@@ -1185,14 +1186,16 @@ function ManageTab({
         <label className="mt-3 block text-xs text-gray-500">
           Or import from file (.json or .csv)
           <input
+            ref={fileInputRef}
             type="file"
             accept=".json,application/json,.csv,text/csv"
             className="mt-1 block text-sm"
             onChange={async e => {
+              const input = e.currentTarget
               const file = e.target.files?.[0]
               if (!file) return
               await importFromFile(file)
-              e.currentTarget.value = ''
+              input.value = ''
             }}
           />
         </label>
