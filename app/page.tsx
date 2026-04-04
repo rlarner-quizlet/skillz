@@ -121,6 +121,7 @@ const AVATAR_COLORS = [
 
 const STORAGE_KEY = 'skill-matrix-v1'
 const EXPORT_FORMAT = 'skill-matrix-export'
+const AUTOSAVE_FORMAT = 'skill-matrix-autosave'
 const EXPORT_VERSION = 1
 const AUTOSAVE_INTERVAL_MS = 60_000
 const mk = (m: string, s: string) => `${m}||${s}`
@@ -433,7 +434,7 @@ export default function Home() {
     try {
       const parsed = JSON.parse(trimmed) as Partial<SkillMatrixExport> | Partial<AppState>
       if (parsed && typeof parsed === 'object' && 'format' in parsed) {
-        if (parsed.format !== EXPORT_FORMAT) {
+        if (parsed.format !== EXPORT_FORMAT && parsed.format !== AUTOSAVE_FORMAT) {
           return { ok: false, message: 'Unsupported export format.' }
         }
         if (typeof parsed.version !== 'number') {
@@ -443,7 +444,8 @@ export default function Home() {
           return { ok: false, message: 'Missing export data.' }
         }
         setState(normalizeAppState(parsed.data))
-        return { ok: true, message: `Imported export v${parsed.version}.` }
+        const sourceLabel = parsed.format === AUTOSAVE_FORMAT ? 'autosave' : 'export'
+        return { ok: true, message: `Imported ${sourceLabel} v${parsed.version}.` }
       }
 
       setState(normalizeAppState(parsed))

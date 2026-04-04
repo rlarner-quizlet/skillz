@@ -19,9 +19,9 @@ interface SnapshotPayload {
 }
 
 interface SkillMatrixSnapshot {
-  format: 'skill-matrix-autosave'
+  format: 'skill-matrix-export'
   version: 1
-  savedAt: string
+  exportedAt: string
   data: AppState
 }
 
@@ -84,16 +84,16 @@ export async function POST(request: Request) {
   const outputDir = join(process.cwd(), 'test-data')
   const outputFile = join(outputDir, 'skill-matrix-autosave.json')
   const snapshot: SkillMatrixSnapshot = {
-    format: 'skill-matrix-autosave',
+    format: 'skill-matrix-export',
     version: 1,
-    savedAt: new Date().toISOString(),
+    exportedAt: new Date().toISOString(),
     data: normalized,
   }
 
   try {
     await mkdir(outputDir, { recursive: true })
     await writeFile(outputFile, `${JSON.stringify(snapshot, null, 2)}\n`, 'utf8')
-    return Response.json({ ok: true, path: 'test-data/skill-matrix-autosave.json', savedAt: snapshot.savedAt })
+    return Response.json({ ok: true, path: 'test-data/skill-matrix-autosave.json', exportedAt: snapshot.exportedAt })
   } catch {
     return Response.json({ ok: false, error: 'Failed to write autosave file.' }, { status: 500 })
   }
