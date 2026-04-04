@@ -61,6 +61,18 @@ interface AppState {
   matrix: Record<string, Proficiency>
 }
 
+interface SkillMatrixExport {
+  format: 'skill-matrix-export'
+  version: number
+  exportedAt: string
+  data: AppState
+}
+
+interface DataIoResult {
+  ok: boolean
+  message: string
+}
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const LEVELS = ['None', 'Learning', 'Good', 'Expert'] as const
@@ -108,6 +120,8 @@ const AVATAR_COLORS = [
 ]
 
 const STORAGE_KEY = 'skill-matrix-v1'
+const EXPORT_FORMAT = 'skill-matrix-export'
+const EXPORT_VERSION = 1
 const mk = (m: string, s: string) => `${m}||${s}`
 const EMPTY: AppState = { skills: [], members: [], projects: [], projectAssignments: {}, matrix: {} }
 const IMPORTED_SKILL_LEVEL: Proficiency = 2
@@ -134,14 +148,7 @@ function loadState(): AppState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return EMPTY
-    const parsed = JSON.parse(raw) as Partial<AppState>
-    return {
-      skills: Array.isArray(parsed.skills) ? parsed.skills.filter(v => typeof v === 'string') : [],
-      members: Array.isArray(parsed.members) ? parsed.members.filter(v => typeof v === 'string') : [],
-      projects: Array.isArray(parsed.projects) ? parsed.projects.filter(v => typeof v === 'string') : [],
-      projectAssignments: normalizeProjectAssignments(parsed.projectAssignments),
-      matrix: parsed.matrix && typeof parsed.matrix === 'object' ? parsed.matrix as Record<string, Proficiency> : {},
-    }
+    return normalizeAppState(JSON.parse(raw))
   } catch { return EMPTY }
 }
 
@@ -207,6 +214,53 @@ function normalizeProjectAssignments(value: unknown): ProjectAssignments {
     }
   })
   return out
+}
+
+function normalizeMatrix(value: unknown, members: string[], skills: string[]): Record<string, Proficiency> {
+  if (!value || typeof value !== 'object') return {}
+  const out: Record<string, Proficiency> = {}
+  const memberSet = new Set(members)
+  const skillSet = new Set(skills)
+
+  Object.entries(value as Record<string, unknown>).forEach(([key, rawLevel]) => {
+    const [member, skill] = key.split('||')
+    if (!member || !skill) return
+    if (!memberSet.has(member) || !skillSet.has(skill)) return
+    if (typeof rawLevel !== 'number' || !Number.isInteger(rawLevel)) return
+    if (rawLevel < 0 || rawLevel > 3) return
+    out[key] = rawLevel as Proficiency
+  })
+
+  return out
+}
+
+function normalizeAppState(value: unknown): AppState {
+  if (!value || typeof value !== 'object') return EMPTY
+  const parsed = value as Partial<AppState>
+  const skills = Array.isArray(parsed.skills) ? [...new Set(parsed.skills.filter(v => typeof v === 'string'))] : []
+  const members = Array.isArray(parsed.members) ? [...new Set(parsed.members.filter(v => typeof v === 'string'))] : []
+  const projects = Array.isArray(parsed.projects) ? [...new Set(parsed.projects.filter(v => typeof v === 'string'))] : []
+
+  const skillSet = new Set(skills)
+  const memberSet = new Set(members)
+  const rawAssignments = normalizeProjectAssignments(parsed.projectAssignments)
+  const projectAssignments: ProjectAssignments = {}
+
+  projects.forEach(project => {
+    const config = rawAssignments[project] ?? { skills: [], members: [] }
+    projectAssignments[project] = {
+      skills: config.skills.filter(skill => skillSet.has(skill)),
+      members: config.members.filter(member => memberSet.has(member)),
+    }
+  })
+
+  return {
+    skills,
+    members,
+    projects,
+    projectAssignments,
+    matrix: normalizeMatrix(parsed.matrix, members, skills),
+  }
 }
 
 // ─── Root ─────────────────────────────────────────────────────────────────────
@@ -335,6 +389,55 @@ export default function Home() {
         matrix: { ...prev.matrix, ...matrixPatch },
       }
     })
+  }
+
+  const importData = (input: string): DataIoResult => {
+    const trimmed = input.trim()
+    if (!trimmed) return { ok: false, message: 'Nothing to import.' }
+
+    try {
+      const parsed = JSON.parse(trimmed) as Partial<SkillMatrixExport> | Partial<AppState>
+      if (parsed && typeof parsed === 'object' && 'format' in parsed) {
+        if (parsed.format !== EXPORT_FORMAT) {
+          return { ok: false, message: 'Unsupported export format.' }
+        }
+        if (typeof parsed.version !== 'number') {
+          return { ok: false, message: 'Missing export version.' }
+        }
+        if (!('data' in parsed)) {
+          return { ok: false, message: 'Missing export data.' }
+        }
+        setState(normalizeAppState(parsed.data))
+        return { ok: true, message: `Imported export v${parsed.version}.` }
+      }
+
+      setState(normalizeAppState(parsed))
+      return { ok: true, message: 'Imported JSON app data.' }
+    } catch {
+      importMembersWithSkills(trimmed)
+      return { ok: true, message: 'Imported CSV members and skills.' }
+    }
+  }
+
+  const exportData = (): DataIoResult => {
+    if (typeof window === 'undefined') return { ok: false, message: 'Export unavailable on server.' }
+    const payload: SkillMatrixExport = {
+      format: EXPORT_FORMAT,
+      version: EXPORT_VERSION,
+      exportedAt: new Date().toISOString(),
+      data: normalizeAppState(state),
+    }
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-')
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = `skill-matrix-v${EXPORT_VERSION}-${stamp}.json`
+    document.body.appendChild(anchor)
+    anchor.click()
+    anchor.remove()
+    URL.revokeObjectURL(url)
+    return { ok: true, message: `Exported v${EXPORT_VERSION} backup.` }
   }
 
   const removeMember = (name: string) =>
@@ -488,7 +591,8 @@ export default function Home() {
                 addSkill={addSkill}     removeSkill={removeSkill}
                 addMember={addMember}   removeMember={removeMember}
                 addProject={addProject} removeProject={removeProject}
-                importMembersWithSkills={importMembersWithSkills}
+                importData={importData}
+                exportData={exportData}
                 resetAll={resetAll}
               />
             )}
@@ -815,6 +919,13 @@ function ProjectsTab({
     <div className="space-y-4">
       {projects.map(project => {
         const config = projectAssignments[project] ?? { skills: [], members: [] }
+        const uncoveredSkills = config.skills.filter(skill => {
+          const assignedLevels = config.members.map(member => getLevel(member, skill))
+          const expertCount = assignedLevels.filter(level => level === 3).length
+          const competentCount = assignedLevels.filter(level => level >= 2).length
+          return expertCount === 0 && competentCount < 2
+        })
+
         const skilledAvailableMembers = sortedMembers
           .filter(member => {
             if (config.members.includes(member)) return false
@@ -824,10 +935,10 @@ function ProjectsTab({
               return otherMembers.includes(member)
             })
             if (assignedElsewhere) return false
-            return config.skills.some(skill => getLevel(member, skill) > 0)
+            return uncoveredSkills.some(skill => getLevel(member, skill) > 0)
           })
           .map(member => {
-            const maxLevel = config.skills.reduce<Proficiency>((max, skill) => {
+            const maxLevel = uncoveredSkills.reduce<Proficiency>((max, skill) => {
               const lv = getLevel(member, skill)
               return lv > max ? lv : max
             }, 0)
@@ -911,8 +1022,14 @@ function ProjectsTab({
                 <p className="text-xs font-medium text-gray-600 mb-2">Skilled team members</p>
                 {!config.skills.length ? (
                   <p className="text-xs text-gray-400">Select required skills to see matching available members.</p>
+                ) : !uncoveredSkills.length ? (
+                  <p className="text-xs text-gray-400">
+                    All required skills are already covered by assigned experts or competent members.
+                  </p>
                 ) : skilledAvailableMembers.length === 0 ? (
-                  <p className="text-xs text-gray-400">No available members outside other projects have these skills.</p>
+                  <p className="text-xs text-gray-400">
+                    No available members outside other projects have these uncovered skills.
+                  </p>
                 ) : (
                   <div className="flex flex-wrap gap-2">
                     {skilledAvailableMembers.map(({ member, maxLevel }) => (
@@ -947,7 +1064,8 @@ function ManageTab({
   removeMember,
   addProject,
   removeProject,
-  importMembersWithSkills,
+  importData,
+  exportData,
   resetAll,
 }: {
   skills: string[]
@@ -959,20 +1077,23 @@ function ManageTab({
   removeMember: (n: string) => void
   addProject: (n: string) => void
   removeProject: (n: string) => void
-  importMembersWithSkills: (input: string) => void
+  importData: (input: string) => DataIoResult
+  exportData: () => DataIoResult
   resetAll: () => void
 }) {
   const [si, setSi] = useState('')
   const [mi, setMi] = useState('')
   const [pi, setPi] = useState('')
   const [bulkImport, setBulkImport] = useState('')
+  const [ioMessage, setIoMessage] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null)
 
   const submitSkill = () => { addSkill(si); setSi('') }
   const submitMember = () => { addMember(mi); setMi('') }
   const submitProject = () => { addProject(pi); setPi('') }
   const submitImport = () => {
-    importMembersWithSkills(bulkImport)
-    setBulkImport('')
+    const result = importData(bulkImport)
+    setIoMessage({ tone: result.ok ? 'ok' : 'error', text: result.message })
+    if (result.ok) setBulkImport('')
   }
   const hasAnyData = skills.length > 0 || members.length > 0 || projects.length > 0
   const handleResetAll = () => {
@@ -988,7 +1109,12 @@ function ManageTab({
   }
   const importFromFile = async (file: File) => {
     const content = await file.text()
-    importMembersWithSkills(content)
+    const result = importData(content)
+    setIoMessage({ tone: result.ok ? 'ok' : 'error', text: result.message })
+  }
+  const handleExport = () => {
+    const result = exportData()
+    setIoMessage({ tone: result.ok ? 'ok' : 'error', text: result.message })
   }
 
   return (
@@ -1026,27 +1152,41 @@ function ManageTab({
         />
       </Section>
 
-      <Section title="Import member skill list">
+      <Section title="Import / export data">
         <p className="text-xs text-gray-500 mb-2">
-          One person per line: Member, Skill 1, Skill 2 (example: Ross, TypeScript, Go)
+          Import a full versioned JSON backup (recommended), or legacy CSV rows as:
+          Member, Skill 1, Skill 2.
         </p>
         <textarea
           value={bulkImport}
           onChange={e => setBulkImport(e.target.value)}
-          placeholder={'Ross, TypeScript, Go\nSam, Python, SQL'}
+          placeholder={'{\n  "format": "skill-matrix-export",\n  "version": 1,\n  "exportedAt": "2026-01-01T00:00:00.000Z",\n  "data": { ... }\n}\n\nor\nRoss, TypeScript, Go\nSam, Python, SQL'}
           className="w-full h-32 border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gray-300"
         />
-        <button
-          onClick={submitImport}
-          className="mt-2 px-4 py-2 bg-gray-900 text-white rounded-lg text-sm hover:bg-gray-700 transition-colors"
-        >
-          Import members and skills
-        </button>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <button
+            onClick={submitImport}
+            className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm hover:bg-gray-700 transition-colors"
+          >
+            Import data
+          </button>
+          <button
+            onClick={handleExport}
+            className="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors"
+          >
+            Export data (v1)
+          </button>
+        </div>
+        {ioMessage && (
+          <p className={`mt-2 text-xs ${ioMessage.tone === 'ok' ? 'text-green-700' : 'text-red-600'}`}>
+            {ioMessage.text}
+          </p>
+        )}
         <label className="mt-3 block text-xs text-gray-500">
-          Or import from CSV file
+          Or import from file (.json or .csv)
           <input
             type="file"
-            accept=".csv,text/csv"
+            accept=".json,application/json,.csv,text/csv"
             className="mt-1 block text-sm"
             onChange={async e => {
               const file = e.target.files?.[0]
