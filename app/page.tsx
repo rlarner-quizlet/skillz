@@ -913,6 +913,20 @@ function ProjectsTab({
 
   return (
     <div className="space-y-4">
+      <div className="rounded-xl border border-gray-100 bg-white px-3 py-2">
+        <p className="text-xs font-medium text-gray-600 mb-2">Skill coverage</p>
+        <p className="text-xs text-gray-600">
+          <span className="inline-flex items-center mr-2 rounded-full bg-gray-100 px-2 py-1 text-gray-700">
+            None
+          </span>
+          <span className="inline-flex items-center mr-2 rounded-full bg-sky-50 px-2 py-1 text-sky-700">
+            OK: ⚆
+          </span>
+          <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-green-700">
+            Good: ✓
+          </span>
+        </p>
+      </div>
       {projects.map(project => {
         const config = projectAssignments[project] ?? { skills: [], members: [] }
         const uncoveredSkills = config.skills.filter(skill => {
@@ -961,19 +975,33 @@ function ProjectsTab({
                   <div className="flex flex-wrap gap-2">
                     {sortedSkills.map(skill => {
                       const selected = config.skills.includes(skill)
-                      const maxAssignedLevel = config.members.reduce<Proficiency>((max, member) => {
-                        const level = getLevel(member, skill)
+                      const assignedMembersWithSkill = config.members.filter(member => getLevel(member, skill) > 0)
+                      const assignedLevels = config.members.map(member => getLevel(member, skill))
+                      const maxAssignedLevel = assignedLevels.reduce<Proficiency>((max, level) => {
                         return level > max ? level : max
                       }, 0)
+                      const expertCount = assignedLevels.filter(level => level === 3).length
+                      const competentCount = assignedLevels.filter(level => level >= 2).length
+                      const coverageLevel: Proficiency = (expertCount > 0 || competentCount >= 2) ? 3 : maxAssignedLevel
+                      const coverageLabel = expertCount > 0
+                        ? 'Expert'
+                        : competentCount >= 2
+                          ? 'Good'
+                          : LEVELS[maxAssignedLevel]
+                      const tooltip = selected
+                        ? `${skill}: ${coverageLabel} coverage\nOn this project: ${
+                            assignedMembersWithSkill.length ? assignedMembersWithSkill.join(', ') : 'None'
+                          }`
+                        : skill
                       return (
                         <button
                           key={skill}
                           type="button"
                           onClick={() => toggleProjectSkill(project, skill)}
-                          title={selected ? `${skill}: ${LEVELS[maxAssignedLevel]} coverage` : skill}
+                          title={tooltip}
                           className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
                             selected
-                              ? REQUIRED_SKILL_BADGE[maxAssignedLevel]
+                              ? REQUIRED_SKILL_BADGE[coverageLevel]
                               : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
                           }`}
                         >
@@ -1015,7 +1043,7 @@ function ProjectsTab({
               </div>
 
               <div>
-                <p className="text-xs font-medium text-gray-600 mb-2">Skilled team members</p>
+                <p className="text-xs font-medium text-gray-600 mb-2">Additional skilled team members</p>
                 {!config.skills.length ? (
                   <p className="text-xs text-gray-400">Select required skills to see matching available members.</p>
                 ) : !uncoveredSkills.length ? (
@@ -1097,6 +1125,7 @@ function ManageTab({
     if (result.ok) setBulkImport('')
   }
   const hasAnyData = skills.length > 0 || members.length > 0 || projects.length > 0
+  const sortedSkills = [...skills].sort((a, b) => a.localeCompare(b))
   const handleResetAll = () => {
     if (!hasAnyData) return
     if (!window.confirm('Reset all data? This will delete all team members, skills, projects, and skill levels.')) {
@@ -1126,7 +1155,7 @@ function ManageTab({
           onChange={setSi} onSubmit={submitSkill} label="Add skill"
         />
         <TagList
-          items={skills} onRemove={removeSkill}
+          items={sortedSkills} onRemove={removeSkill}
           empty="No skills added yet."
         />
       </Section>
