@@ -45,6 +45,14 @@ You can import the Partnerships skillz data from [test-data](/test-data/skill-ma
 
 ```
 
+### Local autosave snapshot
+
+While the app is running, it writes an autosave snapshot every 60 seconds to:
+
+- `test-data/skill-matrix-autosave.json`
+
+This is a temporary collaboration step before syncing the JSON to GCS.
+
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 

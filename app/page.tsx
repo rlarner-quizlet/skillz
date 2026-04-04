@@ -122,6 +122,7 @@ const AVATAR_COLORS = [
 const STORAGE_KEY = 'skill-matrix-v1'
 const EXPORT_FORMAT = 'skill-matrix-export'
 const EXPORT_VERSION = 1
+const AUTOSAVE_INTERVAL_MS = 60_000
 const mk = (m: string, s: string) => `${m}||${s}`
 const EMPTY: AppState = { skills: [], members: [], projects: [], projectAssignments: {}, matrix: {} }
 const IMPORTED_SKILL_LEVEL: Proficiency = 2
@@ -268,6 +269,8 @@ function normalizeAppState(value: unknown): AppState {
 export default function Home() {
   const [tab, setTab] = useState<Tab>('matrix')
   const [state, setState] = useState<AppState>(() => loadState())
+  const autosaveStateRef = useRef<AppState>(state)
+  const lastAutosaveRef = useRef<string>('')
   const isHydrated = useSyncExternalStore(
     () => () => {},
     () => true,
@@ -275,6 +278,38 @@ export default function Home() {
   )
 
   useEffect(() => { saveState(state) }, [state])
+  useEffect(() => { autosaveStateRef.current = state }, [state])
+
+  useEffect(() => {
+    let active = true
+
+    const writeSnapshot = async () => {
+      const normalized = normalizeAppState(autosaveStateRef.current)
+      const serialized = JSON.stringify(normalized)
+      if (serialized === lastAutosaveRef.current) return
+
+      try {
+        const response = await fetch('/api/state-snapshot', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ state: normalized }),
+          keepalive: true,
+        })
+        if (!active || !response.ok) return
+        lastAutosaveRef.current = serialized
+      } catch {
+        // Keep UI responsive if autosave endpoint is unavailable.
+      }
+    }
+
+    void writeSnapshot()
+    const intervalId = window.setInterval(() => { void writeSnapshot() }, AUTOSAVE_INTERVAL_MS)
+
+    return () => {
+      active = false
+      window.clearInterval(intervalId)
+    }
+  }, [])
 
   const skills = Array.isArray(state.skills) ? state.skills : []
   const members = Array.isArray(state.members) ? state.members : []
