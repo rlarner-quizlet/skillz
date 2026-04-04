@@ -10,7 +10,7 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can import the Partnerships skillz data from [test-data](/test-data/skill-matrix-v1-2026-04-04T07-21-05-085Z.json). The file format is essentially:
+You can import the Partnerships skillz data from [test-data](/test-data/skill-matrix-v1-2026-04-04T06-55-19-320Z.json). The file format is essentially:
 
 ```json
 {
