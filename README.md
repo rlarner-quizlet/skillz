@@ -37,7 +37,10 @@ You can import the Partnerships skillz data from [test-data](/test-data/skill-ma
         ]
       },
     },
-},
+    "matrix": {
+      "Ayelen||UI": 2,
+    },    
+  },
 }
 
 ```
