@@ -67,8 +67,48 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-## Deploy on Vercel
+## Deploy on Vercel (with password protection)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+This app is ready to deploy on Vercel as-is (including the `app/api/state-snapshot` route).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### 1) Deploy the app
+
+From the repo root:
+
+```bash
+npx vercel
+```
+
+Then follow the prompts:
+
+- Link to your Vercel account/team
+- Confirm the project name
+- Keep defaults for:
+  - Build command: `npm run build`
+  - Output: Next.js
+
+After the first deploy, production deploys can be done with:
+
+```bash
+npx vercel --prod
+```
+
+### 2) Turn on password protection
+
+In the Vercel dashboard:
+
+1. Open your project.
+2. Go to **Settings** -> **Deployment Protection**.
+3. Enable **Password Protection**.
+4. Set and save the password.
+
+Only people with that password can open the site URL.
+
+### 3) Share the URL
+
+Give teammates the production URL and password. The app can stay online even when your laptop is off.
+
+### Notes
+
+- Data in this app is currently stored in each user's browser (`localStorage`), so users do not automatically share one common dataset.
+- The app also writes autosave snapshots server-side to `test-data/skill-matrix-autosave.json` when the API route is reachable.

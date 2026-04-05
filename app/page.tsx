@@ -46,12 +46,30 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 import Image from 'next/image'
 import { useState, useEffect, useSyncExternalStore, useRef } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Tab = 'matrix' | 'gaps' | 'members' | 'projects' | 'manage'
 type Proficiency = 0 | 1 | 2 | 3
 type ProjectAssignments = Record<string, { skills: string[]; members: string[] }>
+
+const TAB_TO_PATH: Record<Tab, string> = {
+  matrix: '/skill-matrix',
+  gaps: '/gap-analysis',
+  members: '/members',
+  projects: '/project',
+  manage: '/manage',
+}
+
+const PATH_TO_TAB: Record<string, Tab> = {
+  '/': 'matrix',
+  '/skill-matrix': 'matrix',
+  '/gap-analysis': 'gaps',
+  '/members': 'members',
+  '/project': 'projects',
+  '/manage': 'manage',
+}
 
 interface AppState {
   skills: string[]
@@ -62,7 +80,7 @@ interface AppState {
 }
 
 interface SkillMatrixExport {
-  format: 'skill-matrix-export'
+  format: 'skill-matrix-export' | 'skill-matrix-autosave'
   version: number
   exportedAt: string
   data: AppState
@@ -268,7 +286,8 @@ function normalizeAppState(value: unknown): AppState {
 // ─── Root ─────────────────────────────────────────────────────────────────────
 
 export default function Home() {
-  const [tab, setTab] = useState<Tab>('matrix')
+  const router = useRouter()
+  const pathname = usePathname()
   const [state, setState] = useState<AppState>(() => loadState())
   const autosaveStateRef = useRef<AppState>(state)
   const lastAutosaveRef = useRef<string>('')
@@ -552,6 +571,14 @@ export default function Home() {
     { id: 'manage',  label: 'Manage' },
   ]
 
+  const tab = PATH_TO_TAB[pathname] ?? 'matrix'
+
+  const navigateToTab = (nextTab: Tab) => {
+    const nextPath = TAB_TO_PATH[nextTab]
+    if (nextPath === pathname) return
+    router.push(nextPath, { scroll: false })
+  }
+
   if (!isHydrated) return <div className="min-h-screen bg-gray-50" />
 
   return (
@@ -591,7 +618,7 @@ export default function Home() {
             {TABS.map(t => (
               <button
                 key={t.id}
-                onClick={() => setTab(t.id)}
+                onClick={() => navigateToTab(t.id)}
                 className={`px-5 py-3 text-sm font-medium whitespace-nowrap transition-colors ${
                   tab === t.id
                     ? 'text-gray-900 border-b-2 border-gray-900 -mb-px'
