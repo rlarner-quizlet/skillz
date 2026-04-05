@@ -80,7 +80,7 @@ interface AppState {
 }
 
 interface SkillMatrixExport {
-  format: 'skill-matrix-export' | 'skill-matrix-autosave'
+  format: 'skill-matrix-autosave'
   version: number
   exportedAt: string
   data: AppState
@@ -138,7 +138,6 @@ const AVATAR_COLORS = [
 ]
 
 const STORAGE_KEY = 'skill-matrix-v1'
-const EXPORT_FORMAT = 'skill-matrix-export'
 const AUTOSAVE_FORMAT = 'skill-matrix-autosave'
 const EXPORT_VERSION = 1
 const AUTOSAVE_INTERVAL_MS = 60_000
@@ -453,18 +452,17 @@ export default function Home() {
     try {
       const parsed = JSON.parse(trimmed) as Partial<SkillMatrixExport> | Partial<AppState>
       if (parsed && typeof parsed === 'object' && 'format' in parsed) {
-        if (parsed.format !== EXPORT_FORMAT && parsed.format !== AUTOSAVE_FORMAT) {
-          return { ok: false, message: 'Unsupported export format.' }
+        if (parsed.format !== AUTOSAVE_FORMAT) {
+          return { ok: false, message: 'Unsupported snapshot format.' }
         }
         if (typeof parsed.version !== 'number') {
-          return { ok: false, message: 'Missing export version.' }
+          return { ok: false, message: 'Missing snapshot version.' }
         }
         if (!('data' in parsed)) {
-          return { ok: false, message: 'Missing export data.' }
+          return { ok: false, message: 'Missing snapshot data.' }
         }
         setState(normalizeAppState(parsed.data))
-        const sourceLabel = parsed.format === AUTOSAVE_FORMAT ? 'autosave' : 'export'
-        return { ok: true, message: `Imported ${sourceLabel} v${parsed.version}.` }
+        return { ok: true, message: `Imported autosave v${parsed.version}.` }
       }
 
       setState(normalizeAppState(parsed))
@@ -478,7 +476,7 @@ export default function Home() {
   const exportData = (): DataIoResult => {
     if (typeof window === 'undefined') return { ok: false, message: 'Export unavailable on server.' }
     const payload: SkillMatrixExport = {
-      format: EXPORT_FORMAT,
+      format: AUTOSAVE_FORMAT,
       version: EXPORT_VERSION,
       exportedAt: new Date().toISOString(),
       data: normalizeAppState(state),
@@ -488,12 +486,12 @@ export default function Home() {
     const stamp = new Date().toISOString().replace(/[:.]/g, '-')
     const anchor = document.createElement('a')
     anchor.href = url
-    anchor.download = `skill-matrix-v${EXPORT_VERSION}-${stamp}.json`
+    anchor.download = `skill-matrix-autosave-v${EXPORT_VERSION}-${stamp}.json`
     document.body.appendChild(anchor)
     anchor.click()
     anchor.remove()
     URL.revokeObjectURL(url)
-    return { ok: true, message: `Exported v${EXPORT_VERSION} backup.` }
+    return { ok: true, message: `Exported autosave v${EXPORT_VERSION} backup.` }
   }
 
   const removeMember = (name: string) =>
@@ -1254,7 +1252,7 @@ function ManageTab({
         <textarea
           value={bulkImport}
           onChange={e => setBulkImport(e.target.value)}
-          placeholder={'{\n  "format": "skill-matrix-export",\n  "version": 1,\n  "exportedAt": "2026-01-01T00:00:00.000Z",\n  "data": { ... }\n}\n\nor\nRoss, TypeScript, Go\nSam, Python, SQL'}
+          placeholder={'{\n  "format": "skill-matrix-autosave",\n  "version": 1,\n  "exportedAt": "2026-01-01T00:00:00.000Z",\n  "data": { ... }\n}\n\nor\nRoss, TypeScript, Go\nSam, Python, SQL'}
           className="w-full h-32 border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gray-300"
         />
         <div className="mt-2 flex flex-wrap gap-2">

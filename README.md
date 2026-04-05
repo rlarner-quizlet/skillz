@@ -14,7 +14,7 @@ You can import the Partnerships skillz data from [test-data](/test-data/skill-ma
 
 ```json
 {
-  "format": "skill-matrix-export",
+  "format": "skill-matrix-autosave",
   "version": 1,
   "exportedAt": "2026-04-04T06:55:19.317Z",
   "data": {

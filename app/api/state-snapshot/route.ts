@@ -19,7 +19,7 @@ interface SnapshotPayload {
 }
 
 interface SkillMatrixSnapshot {
-  format: 'skill-matrix-export'
+  format: 'skill-matrix-autosave'
   version: 1
   exportedAt: string
   data: AppState
@@ -84,7 +84,7 @@ export async function POST(request: Request) {
   const outputDir = join(process.cwd(), 'test-data')
   const outputFile = join(outputDir, 'skill-matrix-autosave.json')
   const snapshot: SkillMatrixSnapshot = {
-    format: 'skill-matrix-export',
+    format: 'skill-matrix-autosave',
     version: 1,
     exportedAt: new Date().toISOString(),
     data: normalized,
