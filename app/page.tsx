@@ -629,9 +629,25 @@ export default function Home() {
           </div>
 
           <div className="p-6">
-            {tab === 'matrix'  && <MatrixTab  skills={skills} members={members} getLevel={getLevel} cycleLevel={cycleLevel} />}
+            {tab === 'matrix'  && (
+              <MatrixTab
+                skills={skills}
+                members={members}
+                getLevel={getLevel}
+                cycleLevel={cycleLevel}
+                addSkill={addSkill}
+              />
+            )}
             {tab === 'gaps'    && <GapsTab    skills={skills} members={members} getLevel={getLevel} />}
-            {tab === 'members' && <MembersTab skills={skills} members={members} getLevel={getLevel} cycleLevel={cycleLevel} />}
+            {tab === 'members' && (
+              <MembersTab
+                skills={skills}
+                members={members}
+                getLevel={getLevel}
+                cycleLevel={cycleLevel}
+                addMember={addMember}
+              />
+            )}
             {tab === 'projects' && (
               <ProjectsTab
                 projects={projects}
@@ -641,6 +657,7 @@ export default function Home() {
                 getLevel={getLevel}
                 toggleProjectSkill={toggleProjectSkill}
                 toggleProjectMember={toggleProjectMember}
+                addProject={addProject}
               />
             )}
             {tab === 'manage'  && (
@@ -663,100 +680,122 @@ export default function Home() {
 
 // ─── Matrix Tab ───────────────────────────────────────────────────────────────
 
-function MatrixTab({ skills, members, getLevel, cycleLevel }: {
+function MatrixTab({ skills, members, getLevel, cycleLevel, addSkill }: {
   skills: string[]
   members: string[]
   getLevel: (m: string, s: string) => Proficiency
   cycleLevel: (m: string, s: string) => void
+  addSkill: (name: string) => void
 }) {
-  if (!members.length || !skills.length)
-    return <Empty text="Add team members and skills in the Manage tab to get started." />
+  const [skillInput, setSkillInput] = useState('')
+  const submitSkill = () => {
+    addSkill(skillInput)
+    setSkillInput('')
+  }
+  const canRenderMatrix = members.length > 0 && skills.length > 0
   const sortedMembers = [...members].sort((a, b) => a.localeCompare(b))
 
   return (
-    <div>
-      {/* Legend */}
-      <div className="flex flex-wrap items-center gap-2 mb-4">
-        {LEVELS.map((l, i) => (
-          <span key={l} className={`text-xs px-2.5 py-0.5 rounded-full inline-flex items-center gap-1 ${LEVEL_BADGE[i]}`}>
-            <LevelIcon level={i as Proficiency} size={12} />
-            {l}
-          </span>
-        ))}
-        <span className="text-xs text-gray-400 ml-1">— click a cell to cycle levels</span>
-      </div>
+    <div className="space-y-4">
+      {canRenderMatrix ? (
+        <>
+          {/* Legend */}
+          <div className="flex flex-wrap items-center gap-2 mb-4">
+            {LEVELS.map((l, i) => (
+              <span key={l} className={`text-xs px-2.5 py-0.5 rounded-full inline-flex items-center gap-1 ${LEVEL_BADGE[i]}`}>
+                <LevelIcon level={i as Proficiency} size={12} />
+                {l}
+              </span>
+            ))}
+            <span className="text-xs text-gray-400 ml-1">— click a cell to cycle levels</span>
+          </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm border-collapse">
-          <thead>
-            <tr>
-              <th className="text-left font-medium text-gray-500 pb-2 pr-4 min-w-[140px]">
-                Member
-              </th>
-              {skills.map(s => (
-                <th key={s} className="font-medium text-gray-500 pb-2 px-1 text-center min-w-[80px]">
-                  <span className="block text-xs truncate max-w-[80px]" title={s}>{s}</span>
-                </th>
-              ))}
-              <th className="font-medium text-gray-500 pb-2 px-2 text-center text-xs min-w-[70px]">
-                Coverage
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-50">
-            {sortedMembers.map(m => {
-              const count = skills.filter(s => getLevel(m, s) > 0).length
-              const pct   = skills.length ? Math.round((count / skills.length) * 100) : 0
-              return (
-                <tr key={m} className="hover:bg-gray-50/50">
-                  <td className="py-1.5 pr-4 font-medium text-gray-900">{m}</td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr>
+                  <th className="text-left font-medium text-gray-500 pb-2 pr-4 min-w-[140px]">
+                    Member
+                  </th>
+                  {skills.map(s => (
+                    <th key={s} className="font-medium text-gray-500 pb-2 px-1 text-center min-w-[80px]">
+                      <span className="block text-xs truncate max-w-[80px]" title={s}>{s}</span>
+                    </th>
+                  ))}
+                  <th className="font-medium text-gray-500 pb-2 px-2 text-center text-xs min-w-[70px]">
+                    Coverage
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {sortedMembers.map(m => {
+                  const count = skills.filter(s => getLevel(m, s) > 0).length
+                  const pct   = skills.length ? Math.round((count / skills.length) * 100) : 0
+                  return (
+                    <tr key={m} className="hover:bg-gray-50/50">
+                      <td className="py-1.5 pr-4 font-medium text-gray-900">{m}</td>
+                      {skills.map(s => {
+                        const lv = getLevel(m, s)
+                        return (
+                          <td key={s} className="py-1 px-1 text-center">
+                            <button
+                              onClick={() => cycleLevel(m, s)}
+                              title={`${m} · ${s}: ${LEVELS[lv]} — click to change`}
+                              className={`w-full rounded border text-xs py-1 transition-colors ${LEVEL_CELL[lv]}`}
+                            >
+                              <span className="flex items-center justify-center">
+                                <LevelIcon level={lv} />
+                              </span>
+                            </button>
+                          </td>
+                        )
+                      })}
+                      <td className="py-1.5 px-2 text-center">
+                        <span className={`text-xs font-semibold ${
+                          pct === 100 ? 'text-green-600' : pct >= 50 ? 'text-sky-600' : 'text-gray-400'
+                        }`}>
+                          {pct}%
+                        </span>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+              <tfoot className="border-t-2 border-gray-100">
+                <tr>
+                  <td className="pt-2 pr-4 text-xs font-medium text-gray-500">Coverage</td>
                   {skills.map(s => {
-                    const lv = getLevel(m, s)
+                    const count = members.filter(m => getLevel(m, s) > 0).length
+                    const pct   = members.length ? Math.round((count / members.length) * 100) : 0
                     return (
-                      <td key={s} className="py-1 px-1 text-center">
-                        <button
-                          onClick={() => cycleLevel(m, s)}
-                          title={`${m} · ${s}: ${LEVELS[lv]} — click to change`}
-                          className={`w-full rounded border text-xs py-1 transition-colors ${LEVEL_CELL[lv]}`}
-                        >
-                          <span className="flex items-center justify-center">
-                            <LevelIcon level={lv} />
-                          </span>
-                        </button>
+                      <td key={s} className="pt-2 px-1 text-center">
+                        <span className={`text-xs font-semibold ${
+                          pct === 100 ? 'text-green-600' : pct > 0 ? 'text-sky-600' : 'text-red-400'
+                        }`}>
+                          {pct}%
+                        </span>
                       </td>
                     )
                   })}
-                  <td className="py-1.5 px-2 text-center">
-                    <span className={`text-xs font-semibold ${
-                      pct === 100 ? 'text-green-600' : pct >= 50 ? 'text-sky-600' : 'text-gray-400'
-                    }`}>
-                      {pct}%
-                    </span>
-                  </td>
+                  <td />
                 </tr>
-              )
-            })}
-          </tbody>
-          <tfoot className="border-t-2 border-gray-100">
-            <tr>
-              <td className="pt-2 pr-4 text-xs font-medium text-gray-500">Coverage</td>
-              {skills.map(s => {
-                const count = members.filter(m => getLevel(m, s) > 0).length
-                const pct   = members.length ? Math.round((count / members.length) * 100) : 0
-                return (
-                  <td key={s} className="pt-2 px-1 text-center">
-                    <span className={`text-xs font-semibold ${
-                      pct === 100 ? 'text-green-600' : pct > 0 ? 'text-sky-600' : 'text-red-400'
-                    }`}>
-                      {pct}%
-                    </span>
-                  </td>
-                )
-              })}
-              <td />
-            </tr>
-          </tfoot>
-        </table>
+              </tfoot>
+            </table>
+          </div>
+        </>
+      ) : (
+        <Empty text="Add team members and skills to get started." />
+      )}
+
+      <div className="pt-4 border-t border-gray-100">
+        <p className="text-xs font-medium text-gray-600 mb-2">Quick add skill</p>
+        <InputRow
+          value={skillInput}
+          placeholder="e.g. TypeScript"
+          onChange={setSkillInput}
+          onSubmit={submitSkill}
+          label="Add skill"
+        />
       </div>
     </div>
   )
@@ -880,69 +919,92 @@ function GapsTab({ skills, members, getLevel }: {
 
 // ─── Members Tab ──────────────────────────────────────────────────────────────
 
-function MembersTab({ members, skills, getLevel, cycleLevel }: {
+function MembersTab({ members, skills, getLevel, cycleLevel, addMember }: {
   members: string[]
   skills: string[]
   getLevel: (m: string, s: string) => Proficiency
   cycleLevel: (m: string, s: string) => void
+  addMember: (name: string) => void
 }) {
-  if (!members.length) return <Empty text="Add team members in the Manage tab." />
+  const [memberInput, setMemberInput] = useState('')
+  const submitMember = () => {
+    addMember(memberInput)
+    setMemberInput('')
+  }
+  const hasMembers = members.length > 0
   const sortedMembers = [...members].sort((a, b) => a.localeCompare(b))
   const sortedSkills = [...skills].sort((a, b) => a.localeCompare(b))
 
   return (
     <div className="space-y-4">
-      {skills.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2">
-          {LEVELS.map((l, i) => (
-            <span key={l} className={`text-xs px-2.5 py-0.5 rounded-full inline-flex items-center gap-1 ${LEVEL_BADGE[i]}`}>
-              <LevelIcon level={i as Proficiency} size={12} />
-              {l}
-            </span>
-          ))}
-          <span className="text-xs text-gray-400 ml-1">— click a cell to cycle levels</span>
-        </div>
+      {hasMembers ? (
+        <>
+          {skills.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2">
+              {LEVELS.map((l, i) => (
+                <span key={l} className={`text-xs px-2.5 py-0.5 rounded-full inline-flex items-center gap-1 ${LEVEL_BADGE[i]}`}>
+                  <LevelIcon level={i as Proficiency} size={12} />
+                  {l}
+                </span>
+              ))}
+              <span className="text-xs text-gray-400 ml-1">— click a cell to cycle levels</span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {sortedMembers.map((m, i) => {
+              const initials    = m.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
+              const color       = AVATAR_COLORS[i % AVATAR_COLORS.length]
+              const skillLevels = sortedSkills.map(s => ({ s, lv: getLevel(m, s) }))
+              const covered     = skillLevels.filter(x => x.lv > 0).length
+              const pct         = skills.length ? Math.round((covered / skills.length) * 100) : 0
+
+              return (
+                <div key={m} className="bg-white rounded-xl border border-gray-100 p-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold flex-shrink-0 ${color}`}>
+                      {initials}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-medium text-gray-900 text-sm truncate">{m}</p>
+                      <p className="text-xs text-gray-400">
+                        {covered} of {skills.length} skills{skills.length > 0 && ` · ${pct}%`}
+                      </p>
+                    </div>
+                  </div>
+                  {skills.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {skillLevels.map(({ s, lv }) => (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => cycleLevel(m, s)}
+                          title={`${m} · ${s}: ${LEVELS[lv]} — click to change`}
+                          className={`text-xs px-2 py-0.5 rounded-full ${LEVEL_BADGE[lv]}`}
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </>
+      ) : (
+        <Empty text="Add a team member to start using this view." />
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {sortedMembers.map((m, i) => {
-          const initials    = m.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
-          const color       = AVATAR_COLORS[i % AVATAR_COLORS.length]
-          const skillLevels = sortedSkills.map(s => ({ s, lv: getLevel(m, s) }))
-          const covered     = skillLevels.filter(x => x.lv > 0).length
-          const pct         = skills.length ? Math.round((covered / skills.length) * 100) : 0
-
-          return (
-            <div key={m} className="bg-white rounded-xl border border-gray-100 p-4">
-              <div className="flex items-center gap-3 mb-3">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold flex-shrink-0 ${color}`}>
-                  {initials}
-                </div>
-                <div className="min-w-0">
-                  <p className="font-medium text-gray-900 text-sm truncate">{m}</p>
-                  <p className="text-xs text-gray-400">
-                    {covered} of {skills.length} skills{skills.length > 0 && ` · ${pct}%`}
-                  </p>
-                </div>
-              </div>
-              {skills.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {skillLevels.map(({ s, lv }) => (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => cycleLevel(m, s)}
-                      title={`${m} · ${s}: ${LEVELS[lv]} — click to change`}
-                      className={`text-xs px-2 py-0.5 rounded-full ${LEVEL_BADGE[lv]}`}
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )
-        })}
+      <div className="pt-4 border-t border-gray-100">
+        <p className="text-xs font-medium text-gray-600 mb-2">Quick add team member</p>
+        <InputRow
+          value={memberInput}
+          placeholder="e.g. Alex Chen"
+          onChange={setMemberInput}
+          onSubmit={submitMember}
+          label="Add member"
+        />
       </div>
     </div>
   )
@@ -958,6 +1020,7 @@ function ProjectsTab({
   getLevel,
   toggleProjectSkill,
   toggleProjectMember,
+  addProject,
 }: {
   projects: string[]
   skills: string[]
@@ -966,10 +1029,14 @@ function ProjectsTab({
   getLevel: (m: string, s: string) => Proficiency
   toggleProjectSkill: (project: string, skill: string) => void
   toggleProjectMember: (project: string, member: string) => void
+  addProject: (name: string) => void
 }) {
-  if (!projects.length) {
-    return <Empty text="Add projects in the Manage tab, then assign required skills and team members here." />
+  const [projectInput, setProjectInput] = useState('')
+  const submitProject = () => {
+    addProject(projectInput)
+    setProjectInput('')
   }
+  const hasProjects = projects.length > 0
   const sortedSkills = [...skills].sort((a, b) => a.localeCompare(b))
   const sortedMembers = [...members].sort((a, b) => a.localeCompare(b))
 
@@ -989,7 +1056,7 @@ function ProjectsTab({
           </span>
         </p>
       </div>
-      {projects.map(project => {
+      {hasProjects ? projects.map(project => {
         const config = projectAssignments[project] ?? { skills: [], members: [] }
         const uncoveredSkills = config.skills.filter(skill => {
           const assignedLevels = config.members.map(member => getLevel(member, skill))
@@ -1133,7 +1200,20 @@ function ProjectsTab({
             </div>
           </section>
         )
-      })}
+      }) : (
+        <Empty text="Add a project to start assigning skills and team members." />
+      )}
+
+      <div className="pt-4 border-t border-gray-100">
+        <p className="text-xs font-medium text-gray-600 mb-2">Quick add project</p>
+        <InputRow
+          value={projectInput}
+          placeholder="e.g. Curriculum refresh"
+          onChange={setProjectInput}
+          onSubmit={submitProject}
+          label="Add project"
+        />
+      </div>
     </div>
   )
 }
