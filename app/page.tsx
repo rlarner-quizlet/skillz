@@ -45,8 +45,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 'use client'
 
 import Image from 'next/image'
-import { useState, useEffect, useSyncExternalStore, useRef } from 'react'
-import { usePathname, useRouter } from 'next/navigation'
+import { Suspense, useState, useEffect, useSyncExternalStore, useRef } from 'react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -141,9 +141,15 @@ const STORAGE_KEY = 'skill-matrix-v1'
 const AUTOSAVE_FORMAT = 'skill-matrix-autosave'
 const EXPORT_VERSION = 1
 const AUTOSAVE_INTERVAL_MS = 60_000
+const DEFAULT_PROJECT_CAPACITY = 1
+const TECH_DESIGN_PROJECT_CAPACITY = 2
 const mk = (m: string, s: string) => `${m}||${s}`
 const EMPTY: AppState = { skills: [], members: [], projects: [], projectAssignments: {}, matrix: {} }
 const IMPORTED_SKILL_LEVEL: Proficiency = 2
+
+function isTechDesignSkill(skill: string) {
+  return /^tech designs?$/i.test(skill.trim())
+}
 
 function LevelIcon({ level, size = 14 }: {
   level: Proficiency
@@ -285,11 +291,23 @@ function normalizeAppState(value: unknown): AppState {
 // ─── Root ─────────────────────────────────────────────────────────────────────
 
 export default function Home() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
+      <HomeContent />
+    </Suspense>
+  )
+}
+
+function HomeContent() {
   const router = useRouter()
   const pathname = usePathname()
+  const searchParams = useSearchParams()
   const [state, setState] = useState<AppState>(() => loadState())
   const autosaveStateRef = useRef<AppState>(state)
   const lastAutosaveRef = useRef<string>('')
+  const loadedTeamRef = useRef<string | null>(null)
+  const loadedTeamSnapshotRef = useRef<string | null>(null)
+  const hasUnsavedTeamChangesRef = useRef(false)
   const isHydrated = useSyncExternalStore(
     () => () => {},
     () => true,
@@ -298,6 +316,61 @@ export default function Home() {
 
   useEffect(() => { saveState(state) }, [state])
   useEffect(() => { autosaveStateRef.current = state }, [state])
+
+  const teamParam = (searchParams.get('team') ?? '').trim().toLowerCase()
+
+  useEffect(() => {
+    if (!teamParam) {
+      loadedTeamRef.current = null
+      loadedTeamSnapshotRef.current = null
+      hasUnsavedTeamChangesRef.current = false
+      return
+    }
+    const safeTeam = teamParam.replace(/[^a-z0-9_-]/g, '')
+    if (!safeTeam || loadedTeamRef.current === safeTeam) return
+
+    let active = true
+    const loadTeamSnapshot = async () => {
+      try {
+        const response = await fetch(`/teams/${encodeURIComponent(safeTeam)}.json`, { cache: 'no-store' })
+        if (!active || !response.ok) return
+        const parsed = await response.json() as Partial<SkillMatrixExport> | Partial<AppState>
+        const nextState = parsed && typeof parsed === 'object' && 'format' in parsed
+          ? (parsed as Partial<SkillMatrixExport>).data
+          : parsed
+        if (!active) return
+        const normalizedState = normalizeAppState(nextState)
+        setState(normalizedState)
+        loadedTeamRef.current = safeTeam
+        loadedTeamSnapshotRef.current = JSON.stringify(normalizedState)
+        hasUnsavedTeamChangesRef.current = false
+      } catch {
+        // Keep existing state when the requested team file is unavailable.
+      }
+    }
+
+    void loadTeamSnapshot()
+    return () => { active = false }
+  }, [teamParam])
+
+  useEffect(() => {
+    if (!teamParam || !loadedTeamSnapshotRef.current) {
+      hasUnsavedTeamChangesRef.current = false
+      return
+    }
+    const currentSnapshot = JSON.stringify(normalizeAppState(state))
+    hasUnsavedTeamChangesRef.current = currentSnapshot !== loadedTeamSnapshotRef.current
+  }, [state, teamParam])
+
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!teamParam || !hasUnsavedTeamChangesRef.current) return
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [teamParam])
 
   useEffect(() => {
     let active = true
@@ -526,6 +599,19 @@ export default function Home() {
       }
     })
 
+  const reorderProject = (fromProject: string, toProject: string) =>
+    setState(prev => {
+      const currentProjects = Array.isArray(prev.projects) ? prev.projects : []
+      const fromIndex = currentProjects.indexOf(fromProject)
+      const toIndex = currentProjects.indexOf(toProject)
+      if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return prev
+
+      const nextProjects = [...currentProjects]
+      const [moved] = nextProjects.splice(fromIndex, 1)
+      nextProjects.splice(toIndex, 0, moved)
+      return { ...prev, projects: nextProjects }
+    })
+
   const toggleProjectSkill = (project: string, skill: string) =>
     setState(prev => {
       const prevAssignments = normalizeProjectAssignments(prev.projectAssignments)
@@ -573,8 +659,10 @@ export default function Home() {
 
   const navigateToTab = (nextTab: Tab) => {
     const nextPath = TAB_TO_PATH[nextTab]
-    if (nextPath === pathname) return
-    router.push(nextPath, { scroll: false })
+    const query = searchParams.toString()
+    const target = query ? `${nextPath}?${query}` : nextPath
+    if (target === `${pathname}${query ? `?${query}` : ''}`) return
+    router.push(target, { scroll: false })
   }
 
   if (!isHydrated) return <div className="min-h-screen bg-gray-50" />
@@ -638,7 +726,15 @@ export default function Home() {
                 addSkill={addSkill}
               />
             )}
-            {tab === 'gaps'    && <GapsTab    skills={skills} members={members} getLevel={getLevel} />}
+            {tab === 'gaps'    && (
+              <GapsTab
+                skills={skills}
+                members={members}
+                projects={projects}
+                projectAssignments={projectAssignments}
+                getLevel={getLevel}
+              />
+            )}
             {tab === 'members' && (
               <MembersTab
                 skills={skills}
@@ -658,6 +754,8 @@ export default function Home() {
                 toggleProjectSkill={toggleProjectSkill}
                 toggleProjectMember={toggleProjectMember}
                 addProject={addProject}
+                removeProject={removeProject}
+                reorderProject={reorderProject}
               />
             )}
             {tab === 'manage'  && (
@@ -803,24 +901,26 @@ function MatrixTab({ skills, members, getLevel, cycleLevel, addSkill }: {
 
 // ─── Gap Analysis Tab ─────────────────────────────────────────────────────────
 
-function GapsTab({ skills, members, getLevel }: {
+function GapsTab({ skills, members, projects, projectAssignments, getLevel }: {
   skills: string[]
   members: string[]
+  projects: string[]
+  projectAssignments: ProjectAssignments
   getLevel: (m: string, s: string) => Proficiency
 }) {
-  const [sortBy, setSortBy] = useState<'skill' | 'coverage'>('coverage')
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+  const [sortBy, setSortBy] = useState<'skill' | 'gap' | 'coverage' | 'demand'>('gap')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
 
-  const toggleSort = (column: 'skill' | 'coverage') => {
+  const toggleSort = (column: 'skill' | 'gap' | 'coverage' | 'demand') => {
     if (sortBy === column) {
       setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'))
       return
     }
     setSortBy(column)
-    setSortDirection('asc')
+    setSortDirection(column === 'skill' ? 'asc' : 'desc')
   }
 
-  const sortArrow = (column: 'skill' | 'coverage') => {
+  const sortArrow = (column: 'skill' | 'gap' | 'coverage' | 'demand') => {
     if (sortBy !== column) return '↕'
     return sortDirection === 'asc' ? '↑' : '↓'
   }
@@ -828,20 +928,46 @@ function GapsTab({ skills, members, getLevel }: {
   if (!members.length || !skills.length)
     return <Empty text="Add team members and skills in the Manage tab." />
 
-  const skillRows = skills
-    .map(s => {
-      const rows    = members.map(m => ({ m, lv: getLevel(m, s) }))
-      const covered = rows.filter(r => r.lv >= 2)
-      const pct     = members.length ? Math.round((covered.length / members.length) * 100) : 0
-      return { s, covered, learners: rows.filter(r => r.lv === 1), pct }
+  const skillRows = skills.map(s => {
+    const rows = members.map(m => ({ m, lv: getLevel(m, s) }))
+    const covered = rows.filter(r => r.lv >= 2)
+    const learners = rows.filter(r => r.lv === 1)
+    const pct = members.length ? Math.round((covered.length / members.length) * 100) : 0
+    const requiredByProjects = projects.filter(project => {
+      const requiredSkills = projectAssignments[project]?.skills ?? []
+      return requiredSkills.includes(s)
     })
+    const demand = requiredByProjects.length
+    const demandPerCovered = demand === 0 ? 0 : demand / Math.max(covered.length, 1)
+    const uncoveredProjectLoad = Math.max(0, demand - covered.length)
+    // Higher score means higher risk under current project demand.
+    const gapScore = Math.round((demandPerCovered * 100) + (uncoveredProjectLoad * 50))
+
+    return {
+      s,
+      covered,
+      learners,
+      pct,
+      demand,
+      requiredByProjects,
+      gapScore,
+    }
+  })
 
   const sortedSkillRows = [...skillRows].sort((a, b) => {
     if (sortBy === 'skill') {
       const comparison = a.s.localeCompare(b.s)
       return sortDirection === 'asc' ? comparison : -comparison
     }
-    const comparison = a.pct - b.pct
+    if (sortBy === 'coverage') {
+      const comparison = a.pct - b.pct
+      return sortDirection === 'asc' ? comparison : -comparison
+    }
+    if (sortBy === 'demand') {
+      const comparison = a.demand - b.demand
+      return sortDirection === 'asc' ? comparison : -comparison
+    }
+    const comparison = a.gapScore - b.gapScore
     return sortDirection === 'asc' ? comparison : -comparison
   })
 
@@ -849,7 +975,10 @@ function GapsTab({ skills, members, getLevel }: {
     <div className="space-y-10">
       {/* By skill */}
       <section>
-        <h2 className="text-sm font-medium text-gray-700 mb-3">Skills by coverage</h2>
+        <h2 className="text-sm font-medium text-gray-700 mb-3">Skills by project-weighted gap risk</h2>
+        <p className="text-xs text-gray-500 mb-3">
+          Gap score considers project demand per skill and available competent owners (Good/Expert).
+        </p>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -868,6 +997,28 @@ function GapsTab({ skills, members, getLevel }: {
                 <th className="font-medium text-gray-500 py-2 text-center px-3">
                   <button
                     type="button"
+                    onClick={() => toggleSort('gap')}
+                    className="inline-flex items-center gap-1 hover:text-gray-700 transition-colors"
+                    aria-label={`Sort by gap score ${sortBy === 'gap' && sortDirection === 'asc' ? 'descending' : 'ascending'}`}
+                  >
+                    Gap score
+                    <span className="text-xs text-gray-400">{sortArrow('gap')}</span>
+                  </button>
+                </th>
+                <th className="font-medium text-gray-500 py-2 text-center px-3">
+                  <button
+                    type="button"
+                    onClick={() => toggleSort('demand')}
+                    className="inline-flex items-center gap-1 hover:text-gray-700 transition-colors"
+                    aria-label={`Sort by demand ${sortBy === 'demand' && sortDirection === 'asc' ? 'descending' : 'ascending'}`}
+                  >
+                    Project demand
+                    <span className="text-xs text-gray-400">{sortArrow('demand')}</span>
+                  </button>
+                </th>
+                <th className="font-medium text-gray-500 py-2 text-center px-3">
+                  <button
+                    type="button"
                     onClick={() => toggleSort('coverage')}
                     className="inline-flex items-center gap-1 hover:text-gray-700 transition-colors"
                     aria-label={`Sort by coverage ${sortBy === 'coverage' && sortDirection === 'asc' ? 'descending' : 'ascending'}`}
@@ -881,9 +1032,24 @@ function GapsTab({ skills, members, getLevel }: {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {sortedSkillRows.map(({ s, covered, learners, pct }) => (
+              {sortedSkillRows.map(({ s, covered, learners, pct, demand, requiredByProjects, gapScore }) => (
                 <tr key={s} className="hover:bg-gray-50/50">
                   <td className="py-2.5 pr-4 font-medium text-gray-900">{s}</td>
+                  <td className="py-2.5 px-3 text-center">
+                    <span className={`text-sm font-semibold ${
+                      gapScore >= 150 ? 'text-red-600' : gapScore >= 100 ? 'text-amber-600' : 'text-gray-500'
+                    }`}>{gapScore}</span>
+                  </td>
+                  <td className="py-2.5 px-3 text-center">
+                    <span className={`text-sm font-semibold ${demand > 0 ? 'text-gray-700' : 'text-gray-400'}`}>
+                      {demand}
+                    </span>
+                    {requiredByProjects.length > 0 && (
+                      <p className="text-[10px] text-gray-400 mt-0.5">
+                        {requiredByProjects.join(', ')}
+                      </p>
+                    )}
+                  </td>
                   <td className="py-2.5 px-3 text-center">
                     <span className={`text-sm font-semibold ${
                       pct === 0 ? 'text-red-500' : pct < 50 ? 'text-amber-600' : 'text-green-600'
@@ -1021,6 +1187,8 @@ function ProjectsTab({
   toggleProjectSkill,
   toggleProjectMember,
   addProject,
+  removeProject,
+  reorderProject,
 }: {
   projects: string[]
   skills: string[]
@@ -1030,11 +1198,18 @@ function ProjectsTab({
   toggleProjectSkill: (project: string, skill: string) => void
   toggleProjectMember: (project: string, member: string) => void
   addProject: (name: string) => void
+  removeProject: (name: string) => void
+  reorderProject: (fromProject: string, toProject: string) => void
 }) {
   const [projectInput, setProjectInput] = useState('')
+  const [draggingProject, setDraggingProject] = useState<string | null>(null)
   const submitProject = () => {
     addProject(projectInput)
     setProjectInput('')
+  }
+  const handleRemoveProject = (project: string) => {
+    if (!window.confirm(`Delete project "${project}"? This also removes its skill and member assignments.`)) return
+    removeProject(project)
   }
   const hasProjects = projects.length > 0
   const sortedSkills = [...skills].sort((a, b) => a.localeCompare(b))
@@ -1068,12 +1243,20 @@ function ProjectsTab({
         const skilledAvailableMembers = sortedMembers
           .filter(member => {
             if (config.members.includes(member)) return false
-            const assignedElsewhere = projects.some(otherProject => {
-              if (otherProject === project) return false
+            const assignedProjectCount = projects.reduce((count, otherProject) => {
+              if (otherProject === project) return count
               const otherMembers = projectAssignments[otherProject]?.members ?? []
-              return otherMembers.includes(member)
-            })
-            if (assignedElsewhere) return false
+              return otherMembers.includes(member) ? count + 1 : count
+            }, 0)
+            const hasUncoveredTechDesign = uncoveredSkills.some(isTechDesignSkill)
+            const canCoverTechDesign = skills.some(
+              skill => isTechDesignSkill(skill) && getLevel(member, skill) > 0
+            )
+            const maxProjectCapacity = hasUncoveredTechDesign && canCoverTechDesign
+              ? TECH_DESIGN_PROJECT_CAPACITY
+              : DEFAULT_PROJECT_CAPACITY
+            if (assignedProjectCount >= maxProjectCapacity) return false
+
             return uncoveredSkills.some(skill => getLevel(member, skill) > 0)
           })
           .map(member => {
@@ -1086,13 +1269,40 @@ function ProjectsTab({
           .sort((a, b) => (b.maxLevel - a.maxLevel) || a.member.localeCompare(b.member))
 
         return (
-          <section key={project} className="rounded-xl border border-gray-100 p-4 bg-white">
+          <section
+            key={project}
+            draggable
+            onDragStart={() => setDraggingProject(project)}
+            onDragEnd={() => setDraggingProject(null)}
+            onDragOver={event => event.preventDefault()}
+            onDrop={event => {
+              event.preventDefault()
+              if (!draggingProject || draggingProject === project) return
+              reorderProject(draggingProject, project)
+              setDraggingProject(null)
+            }}
+            className={`rounded-xl border p-4 bg-white transition-colors cursor-move ${
+              draggingProject === project ? 'border-gray-300 opacity-80' : 'border-gray-100'
+            }`}
+          >
             <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-              <h3 className="text-sm font-semibold text-gray-900">{project}</h3>
-              <p className="text-xs text-gray-500">
-                {config.skills.length} required skill{config.skills.length === 1 ? '' : 's'} ·{' '}
-                {config.members.length} team member{config.members.length === 1 ? '' : 's'}
-              </p>
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900">{project}</h3>
+                <p className="text-xs text-gray-500">
+                  {config.skills.length} required skill{config.skills.length === 1 ? '' : 's'} ·{' '}
+                  {config.members.length} team member{config.members.length === 1 ? '' : 's'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={event => {
+                  event.stopPropagation()
+                  handleRemoveProject(project)
+                }}
+                className="px-2.5 py-1 text-xs text-red-700 border border-red-200 rounded-md bg-white hover:bg-red-50 transition-colors"
+              >
+                Delete project
+              </button>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -1172,7 +1382,8 @@ function ProjectsTab({
               </div>
 
               <div>
-                <p className="text-xs font-medium text-gray-600 mb-2">Additional skilled team members</p>
+                <p className="text-xs font-medium text-gray-600 mb-1">Additional skilled team members</p>
+                <p className="text-[11px] text-gray-400 mb-2">Click to add to this project.</p>
                 {!config.skills.length ? (
                   <p className="text-xs text-gray-400">Select required skills to see matching available members.</p>
                 ) : !uncoveredSkills.length ? (
@@ -1181,18 +1392,20 @@ function ProjectsTab({
                   </p>
                 ) : skilledAvailableMembers.length === 0 ? (
                   <p className="text-xs text-gray-400">
-                    No available members outside other projects have these uncovered skills.
+                    No available members have capacity and the required uncovered skills.
                   </p>
                 ) : (
                   <div className="flex flex-wrap gap-2">
                     {skilledAvailableMembers.map(({ member, maxLevel }) => (
-                      <span
+                      <button
                         key={member}
+                        type="button"
+                        onClick={() => toggleProjectMember(project, member)}
                         title={`${member}: ${LEVELS[maxLevel]} across required skills`}
-                        className={`text-xs px-2.5 py-1 rounded-full border ${MEMBER_EXPERTISE_BADGE[maxLevel]}`}
+                        className={`text-xs px-2.5 py-1 rounded-full border transition-colors hover:brightness-95 ${MEMBER_EXPERTISE_BADGE[maxLevel]}`}
                       >
-                        {member}
-                      </span>
+                        + {member}
+                      </button>
                     ))}
                   </div>
                 )}
@@ -1268,6 +1481,11 @@ function ManageTab({
   }
   const hasAnyData = skills.length > 0 || members.length > 0 || projects.length > 0
   const sortedSkills = [...skills].sort((a, b) => a.localeCompare(b))
+  const sortedProjects = [...projects].sort((a, b) => a.localeCompare(b))
+  const handleRemoveProject = (project: string) => {
+    if (!window.confirm(`Delete project "${project}"? This also removes its skill and member assignments.`)) return
+    removeProject(project)
+  }
   const handleResetAll = () => {
     if (!hasAnyData) return
     if (!window.confirm('Reset all data? This will delete all team members, skills, projects, and skill levels.')) {
@@ -1318,10 +1536,27 @@ function ManageTab({
           value={pi} placeholder="e.g. Google Classroom Add-On"
           onChange={setPi} onSubmit={submitProject} label="Add project"
         />
-        <TagList
-          items={projects} onRemove={removeProject}
-          empty="No projects added yet."
-        />
+        {sortedProjects.length === 0 ? (
+          <p className="text-sm text-gray-400">No projects added yet.</p>
+        ) : (
+          <div className="space-y-2">
+            {sortedProjects.map(project => (
+              <div
+                key={project}
+                className="flex items-center justify-between gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2"
+              >
+                <span className="text-sm text-gray-800">{project}</span>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveProject(project)}
+                  className="px-2.5 py-1 text-xs text-red-700 border border-red-200 rounded-md bg-white hover:bg-red-50 transition-colors"
+                >
+                  Delete
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </Section>
 
       <Section title="Import / export data">

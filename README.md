@@ -58,6 +58,21 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Team-specific URL loading
+
+You can preload team data from disk by passing a `team` query parameter in the URL:
+
+- `https://your-app-url/skill-matrix?team=growth`
+
+How it works:
+
+1. Place a JSON file at `public/teams/<team>.json`, for example:
+   - `public/teams/growth.json`
+2. Use either:
+   - full app state JSON, or
+   - versioned autosave export JSON (`format: "skill-matrix-autosave"`).
+3. When `?team=<name>` is present, the app loads `/teams/<name>.json` on page load.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
