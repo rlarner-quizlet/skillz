@@ -1,7 +1,7 @@
 {
   "format": "skill-matrix-autosave",
   "version": 1,
-  "exportedAt": "2026-04-25T02:53:46.375Z",
+  "exportedAt": "2026-04-25T17:47:00.424Z",
   "data": {
     "skills": [
       "UI",
@@ -27,7 +27,10 @@
       "User Research",
       "TypeScript",
       "Project Management",
-      "QA"
+      "QA",
+      "DX",
+      "iOS/Swift",
+      "Kotlin"
     ],
     "members": [
       "Ayelen",
@@ -52,14 +55,24 @@
       "Ina",
       "Kara",
       "Scott",
-      "Ryan"
+      "Ryan",
+      "Bruels",
+      "Chris E",
+      "Arun",
+      "Camille",
+      "Anjumon",
+      "Joel"
     ],
     "projects": [
       "Google Classroom Add-On",
       "Discord Integration",
-      "Scaled MarTech",
-      "Growth Optimizations",
-      "Canva"
+      "sGTM",
+      "Notifications",
+      "Auth Funnel Logging",
+      "Streaks",
+      "Spaced Repetition",
+      "Canva",
+      "SEO-Optimized Title Tags"
     ],
     "projectAssignments": {
       "Google Classroom Add-On": {
@@ -83,7 +96,6 @@
           "Brian",
           "Dan W",
           "Rodri",
-          "Ross",
           "Kara",
           "Scott",
           "Romina"
@@ -93,43 +105,75 @@
         "skills": [
           "Auth",
           "Datadog",
-          "DB",
           "Go",
           "k8s/infra/pub/sub",
           "WebSockets",
           "Periscope",
-          "Product",
-          "Logging"
+          "Product"
         ],
         "members": [
-          "Dami",
-          "Mike",
           "Tano",
-          "Samba",
           "Bryce",
-          "Austin",
-          "Nandita"
+          "Austin"
         ]
       },
-      "Scaled MarTech": {
+      "sGTM": {
         "skills": [
           "GTM",
-          "Logging"
+          "k8s/infra/pub/sub"
         ],
         "members": [
-          "Leila"
+          "Leila",
+          "Mike"
         ]
       },
-      "Growth Optimizations": {
+      "Notifications": {
+        "skills": [
+          "Tech Designs"
+        ],
+        "members": [
+          "Yang"
+        ]
+      },
+      "Auth Funnel Logging": {
         "skills": [
           "Tech Designs",
           "Logging"
+        ],
+        "members": [
+          "Ross",
+          "Nandita"
+        ]
+      },
+      "Streaks": {
+        "skills": [
+          "Tech Designs",
+          "Design",
+          "Product"
+        ],
+        "members": [
+          "Anjumon",
+          "Joel"
+        ]
+      },
+      "Spaced Repetition": {
+        "skills": [
+          "TypeScript",
+          "Go"
         ],
         "members": []
       },
       "Canva": {
         "skills": [
-          "Tech Designs"
+          "Tech Designs",
+          "Product",
+          "Design"
+        ],
+        "members": []
+      },
+      "SEO-Optimized Title Tags": {
+        "skills": [
+          "Product"
         ],
         "members": []
       }
@@ -241,7 +285,28 @@
       "Romina||Go": 0,
       "Romina||DB": 0,
       "Romina||Google Classroom": 1,
-      "Ryan||Tech Designs": 3
+      "Bruels||Analytics": 1,
+      "Bruels||Auth": 2,
+      "Bruels||Datadog": 2,
+      "Bruels||DB": 3,
+      "Bruels||DX": 3,
+      "Bruels||Go": 1,
+      "Bruels||iOS/Swift": 3,
+      "Bruels||k8s/infra/pub/sub": 2,
+      "Bruels||Logging": 2,
+      "Bruels||ML/Prompts": 2,
+      "Bruels||PHP": 2,
+      "Bruels||Tech Designs": 3,
+      "Bruels||TypeScript": 3,
+      "Bruels||UI": 3,
+      "Bruels||User Research": 2,
+      "Bruels||WebSockets": 2,
+      "Chris E||Analytics": 3,
+      "Chris E||Periscope": 3,
+      "Anjumon||Product": 2,
+      "Arun||Product": 2,
+      "Camille||Product": 2,
+      "Joel||Design": 3
     }
   }
 }
