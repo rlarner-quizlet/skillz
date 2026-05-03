@@ -1,7 +1,7 @@
 {
   "format": "skill-matrix-autosave",
   "version": 1,
-  "exportedAt": "2026-04-25T17:47:00.424Z",
+  "exportedAt": "2026-05-03T16:54:55.036Z",
   "data": {
     "skills": [
       "UI",
@@ -30,7 +30,8 @@
       "QA",
       "DX",
       "iOS/Swift",
-      "Kotlin"
+      "Kotlin",
+      "Growthbook"
     ],
     "members": [
       "Ayelen",
@@ -61,18 +62,18 @@
       "Arun",
       "Camille",
       "Anjumon",
-      "Joel"
+      "Joel",
+      "Jay"
     ],
     "projects": [
       "Google Classroom Add-On",
       "Discord Integration",
       "sGTM",
       "Notifications",
-      "Auth Funnel Logging",
-      "Streaks",
+      "SEO-Optimized Title Tags",
       "Spaced Repetition",
-      "Canva",
-      "SEO-Optimized Title Tags"
+      "Streaks",
+      "Canva"
     ],
     "projectAssignments": {
       "Google Classroom Add-On": {
@@ -135,15 +136,18 @@
           "Yang"
         ]
       },
-      "Auth Funnel Logging": {
+      "SEO-Optimized Title Tags": {
         "skills": [
-          "Tech Designs",
-          "Logging"
+          "Product"
         ],
-        "members": [
-          "Ross",
-          "Nandita"
-        ]
+        "members": []
+      },
+      "Spaced Repetition": {
+        "skills": [
+          "TypeScript",
+          "Go"
+        ],
+        "members": []
       },
       "Streaks": {
         "skills": [
@@ -156,24 +160,11 @@
           "Joel"
         ]
       },
-      "Spaced Repetition": {
-        "skills": [
-          "TypeScript",
-          "Go"
-        ],
-        "members": []
-      },
       "Canva": {
         "skills": [
           "Tech Designs",
           "Product",
           "Design"
-        ],
-        "members": []
-      },
-      "SEO-Optimized Title Tags": {
-        "skills": [
-          "Product"
         ],
         "members": []
       }
@@ -306,7 +297,26 @@
       "Anjumon||Product": 2,
       "Arun||Product": 2,
       "Camille||Product": 2,
-      "Joel||Design": 3
+      "Joel||Design": 3,
+      "Jay||Analytics": 2,
+      "Jay||Braze": 1,
+      "Jay||Datadog": 1,
+      "Jay||DB": 2,
+      "Jay||Design": 1,
+      "Jay||DX": 2,
+      "Jay||Go": 1,
+      "Jay||GTM": 1,
+      "Jay||iOS/Swift": 3,
+      "Jay||Kotlin": 1,
+      "Jay||Periscope": 1,
+      "Jay||PHP": 1,
+      "Jay||Product": 2,
+      "Jay||Project Management": 2,
+      "Jay||QA": 2,
+      "Jay||Tech Designs": 2,
+      "Jay||TypeScript": 3,
+      "Jay||UI": 2,
+      "Jay||Growthbook": 1
     }
   }
 }
