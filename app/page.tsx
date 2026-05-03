@@ -741,6 +741,8 @@ function HomeContent() {
               <MembersTab
                 skills={skills}
                 members={members}
+                projects={projects}
+                projectAssignments={projectAssignments}
                 getLevel={getLevel}
                 cycleLevel={cycleLevel}
                 addMember={addMember}
@@ -1087,9 +1089,11 @@ function GapsTab({ skills, members, projects, projectAssignments, getLevel }: {
 
 // ─── Members Tab ──────────────────────────────────────────────────────────────
 
-function MembersTab({ members, skills, getLevel, cycleLevel, addMember }: {
+function MembersTab({ members, skills, projects, projectAssignments, getLevel, cycleLevel, addMember }: {
   members: string[]
   skills: string[]
+  projects: string[]
+  projectAssignments: ProjectAssignments
   getLevel: (m: string, s: string) => Proficiency
   cycleLevel: (m: string, s: string) => void
   addMember: (name: string) => void
@@ -1126,6 +1130,10 @@ function MembersTab({ members, skills, getLevel, cycleLevel, addMember }: {
               const skillLevels = sortedSkills.map(s => ({ s, lv: getLevel(m, s) }))
               const covered     = skillLevels.filter(x => x.lv > 0).length
               const pct         = skills.length ? Math.round((covered / skills.length) * 100) : 0
+              const assignedProjects = projects.filter(project => {
+                const assignedMembers = projectAssignments[project]?.members ?? []
+                return assignedMembers.includes(m)
+              })
 
               return (
                 <div key={m} className="bg-white rounded-xl border border-gray-100 p-4">
@@ -1139,6 +1147,25 @@ function MembersTab({ members, skills, getLevel, cycleLevel, addMember }: {
                         {covered} of {skills.length} skills{skills.length > 0 && ` · ${pct}%`}
                       </p>
                     </div>
+                  </div>
+                  <div className="mb-3">
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400 mb-1">
+                      Projects
+                    </p>
+                    {assignedProjects.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {assignedProjects.map(project => (
+                          <span
+                            key={project}
+                            className="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200"
+                          >
+                            {project}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-400">No projects assigned.</p>
+                    )}
                   </div>
                   {skills.length > 0 && (
                     <div className="flex flex-wrap gap-1.5">
@@ -1538,27 +1565,11 @@ function ManageTab({
           value={pi} placeholder="e.g. Google Classroom Add-On"
           onChange={setPi} onSubmit={submitProject} label="Add project"
         />
-        {sortedProjects.length === 0 ? (
-          <p className="text-sm text-gray-400">No projects added yet.</p>
-        ) : (
-          <div className="space-y-2">
-            {sortedProjects.map(project => (
-              <div
-                key={project}
-                className="flex items-center justify-between gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2"
-              >
-                <span className="text-sm text-gray-800">{project}</span>
-                <button
-                  type="button"
-                  onClick={() => handleRemoveProject(project)}
-                  className="px-2.5 py-1 text-xs text-red-700 border border-red-200 rounded-md bg-white hover:bg-red-50 transition-colors"
-                >
-                  Delete
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
+        <TagList
+          items={sortedProjects}
+          onRemove={handleRemoveProject}
+          empty="No projects added yet."
+        />
       </Section>
 
       <Section title="Import / export data">
