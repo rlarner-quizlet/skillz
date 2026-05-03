@@ -146,6 +146,10 @@ const TECH_DESIGN_PROJECT_CAPACITY = 2
 const mk = (m: string, s: string) => `${m}||${s}`
 const EMPTY: AppState = { skills: [], members: [], projects: [], projectAssignments: {}, matrix: {} }
 const IMPORTED_SKILL_LEVEL: Proficiency = 2
+const loadedTeamSession = {
+  name: null as string | null,
+  snapshot: null as string | null,
+}
 
 function isTechDesignSkill(skill: string) {
   return /^tech designs?$/i.test(skill.trim())
@@ -305,8 +309,6 @@ function HomeContent() {
   const [state, setState] = useState<AppState>(() => loadState())
   const autosaveStateRef = useRef<AppState>(state)
   const lastAutosaveRef = useRef<string>('')
-  const loadedTeamRef = useRef<string | null>(null)
-  const loadedTeamSnapshotRef = useRef<string | null>(null)
   const hasUnsavedTeamChangesRef = useRef(false)
   const isHydrated = useSyncExternalStore(
     () => () => {},
@@ -321,13 +323,13 @@ function HomeContent() {
 
   useEffect(() => {
     if (!teamParam) {
-      loadedTeamRef.current = null
-      loadedTeamSnapshotRef.current = null
+      loadedTeamSession.name = null
+      loadedTeamSession.snapshot = null
       hasUnsavedTeamChangesRef.current = false
       return
     }
     const safeTeam = teamParam.replace(/[^a-z0-9_-]/g, '')
-    if (!safeTeam || loadedTeamRef.current === safeTeam) return
+    if (!safeTeam || loadedTeamSession.name === safeTeam) return
 
     let active = true
     const loadTeamSnapshot = async () => {
@@ -341,8 +343,8 @@ function HomeContent() {
         if (!active) return
         const normalizedState = normalizeAppState(nextState)
         setState(normalizedState)
-        loadedTeamRef.current = safeTeam
-        loadedTeamSnapshotRef.current = JSON.stringify(normalizedState)
+        loadedTeamSession.name = safeTeam
+        loadedTeamSession.snapshot = JSON.stringify(normalizedState)
         hasUnsavedTeamChangesRef.current = false
       } catch {
         // Keep existing state when the requested team file is unavailable.
@@ -354,12 +356,12 @@ function HomeContent() {
   }, [teamParam])
 
   useEffect(() => {
-    if (!teamParam || !loadedTeamSnapshotRef.current) {
+    if (!teamParam || !loadedTeamSession.snapshot) {
       hasUnsavedTeamChangesRef.current = false
       return
     }
     const currentSnapshot = JSON.stringify(normalizeAppState(state))
-    hasUnsavedTeamChangesRef.current = currentSnapshot !== loadedTeamSnapshotRef.current
+    hasUnsavedTeamChangesRef.current = currentSnapshot !== loadedTeamSession.snapshot
   }, [state, teamParam])
 
   useEffect(() => {
