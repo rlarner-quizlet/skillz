@@ -1,7 +1,7 @@
 {
   "format": "skill-matrix-autosave",
   "version": 1,
-  "exportedAt": "2026-05-03T16:54:55.036Z",
+  "exportedAt": "2026-05-08T23:20:05.431Z",
   "data": {
     "skills": [
       "UI",
@@ -31,7 +31,9 @@
       "DX",
       "iOS/Swift",
       "Kotlin",
-      "Growthbook"
+      "Growthbook",
+      "Airflow",
+      "SEO"
     ],
     "members": [
       "Ayelen",
@@ -63,17 +65,26 @@
       "Camille",
       "Anjumon",
       "Joel",
-      "Jay"
+      "Jay",
+      "Takeshi"
     ],
     "projects": [
       "Google Classroom Add-On",
       "Discord Integration",
       "sGTM",
-      "Notifications",
       "SEO-Optimized Title Tags",
       "Spaced Repetition",
       "Streaks",
-      "Canva"
+      "Canva",
+      "Retargeting",
+      "Notifications",
+      "Flashcards Sorting On",
+      "Match Results Screen",
+      "Mini FC Copy Test",
+      "Add To Calendar Test",
+      "Student Driven Multiplayer",
+      "Signup Funnel Logging Fixes",
+      "AI Coach Onboarding"
     ],
     "projectAssignments": {
       "Google Classroom Add-On": {
@@ -93,13 +104,9 @@
           "Design"
         ],
         "members": [
-          "Ayelen",
           "Brian",
           "Dan W",
-          "Rodri",
-          "Kara",
-          "Scott",
-          "Romina"
+          "Kara"
         ]
       },
       "Discord Integration": {
@@ -114,8 +121,7 @@
         ],
         "members": [
           "Tano",
-          "Bryce",
-          "Austin"
+          "Bryce"
         ]
       },
       "sGTM": {
@@ -128,26 +134,26 @@
           "Mike"
         ]
       },
-      "Notifications": {
-        "skills": [
-          "Tech Designs"
-        ],
-        "members": [
-          "Yang"
-        ]
-      },
       "SEO-Optimized Title Tags": {
         "skills": [
-          "Product"
+          "Product",
+          "Airflow",
+          "SEO"
         ],
-        "members": []
+        "members": [
+          "Nandita",
+          "Takeshi"
+        ]
       },
       "Spaced Repetition": {
         "skills": [
           "TypeScript",
           "Go"
         ],
-        "members": []
+        "members": [
+          "Nandita",
+          "Bryce"
+        ]
       },
       "Streaks": {
         "skills": [
@@ -157,7 +163,9 @@
         ],
         "members": [
           "Anjumon",
-          "Joel"
+          "Joel",
+          "Jay",
+          "Samba"
         ]
       },
       "Canva": {
@@ -166,6 +174,61 @@
           "Product",
           "Design"
         ],
+        "members": [
+          "Dami",
+          "Tano",
+          "Samba",
+          "Mike",
+          "Jay",
+          "Leila"
+        ]
+      },
+      "Retargeting": {
+        "skills": [
+          "Airflow",
+          "Datadog",
+          "Periscope",
+          "Tech Designs"
+        ],
+        "members": [
+          "Leila",
+          "Romina"
+        ]
+      },
+      "Notifications": {
+        "skills": [
+          "Tech Designs"
+        ],
+        "members": [
+          "Yang"
+        ]
+      },
+      "Flashcards Sorting On": {
+        "skills": [],
+        "members": []
+      },
+      "Match Results Screen": {
+        "skills": [],
+        "members": []
+      },
+      "Mini FC Copy Test": {
+        "skills": [],
+        "members": []
+      },
+      "Add To Calendar Test": {
+        "skills": [],
+        "members": []
+      },
+      "Student Driven Multiplayer": {
+        "skills": [],
+        "members": []
+      },
+      "Signup Funnel Logging Fixes": {
+        "skills": [],
+        "members": []
+      },
+      "AI Coach Onboarding": {
+        "skills": [],
         "members": []
       }
     },
@@ -316,7 +379,11 @@
       "Jay||Tech Designs": 2,
       "Jay||TypeScript": 3,
       "Jay||UI": 2,
-      "Jay||Growthbook": 1
+      "Jay||Growthbook": 1,
+      "Leila||Airflow": 1,
+      "Leila||Datadog": 2,
+      "Takeshi||SEO": 3,
+      "Takeshi||Product": 2
     }
   }
 }
