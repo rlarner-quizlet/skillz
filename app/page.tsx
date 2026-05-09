@@ -746,6 +746,7 @@ function HomeContent() {
                 getLevel={getLevel}
                 cycleLevel={cycleLevel}
                 addMember={addMember}
+                removeMember={removeMember}
               />
             )}
             {tab === 'projects' && (
@@ -1089,7 +1090,7 @@ function GapsTab({ skills, members, projects, projectAssignments, getLevel }: {
 
 // ─── Members Tab ──────────────────────────────────────────────────────────────
 
-function MembersTab({ members, skills, projects, projectAssignments, getLevel, cycleLevel, addMember }: {
+function MembersTab({ members, skills, projects, projectAssignments, getLevel, cycleLevel, addMember, removeMember }: {
   members: string[]
   skills: string[]
   projects: string[]
@@ -1097,11 +1098,16 @@ function MembersTab({ members, skills, projects, projectAssignments, getLevel, c
   getLevel: (m: string, s: string) => Proficiency
   cycleLevel: (m: string, s: string) => void
   addMember: (name: string) => void
+  removeMember: (name: string) => void
 }) {
   const [memberInput, setMemberInput] = useState('')
   const submitMember = () => {
     addMember(memberInput)
     setMemberInput('')
+  }
+  const handleRemoveMember = (member: string) => {
+    if (!window.confirm(`Delete team member "${member}"? This also removes their skill levels and project assignments.`)) return
+    removeMember(member)
   }
   const hasMembers = members.length > 0
   const sortedMembers = [...members].sort((a, b) => a.localeCompare(b))
@@ -1137,16 +1143,25 @@ function MembersTab({ members, skills, projects, projectAssignments, getLevel, c
 
               return (
                 <div key={m} className="bg-white rounded-xl border border-gray-100 p-4">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold flex-shrink-0 ${color}`}>
-                      {initials}
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold flex-shrink-0 ${color}`}>
+                        {initials}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-medium text-gray-900 text-sm truncate">{m}</p>
+                        <p className="text-xs text-gray-400">
+                          {covered} of {skills.length} skills{skills.length > 0 && ` · ${pct}%`}
+                        </p>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <p className="font-medium text-gray-900 text-sm truncate">{m}</p>
-                      <p className="text-xs text-gray-400">
-                        {covered} of {skills.length} skills{skills.length > 0 && ` · ${pct}%`}
-                      </p>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveMember(m)}
+                      className="px-2.5 py-1 text-xs text-red-700 border border-red-200 rounded-md bg-white hover:bg-red-50 transition-colors flex-shrink-0"
+                    >
+                      Delete
+                    </button>
                   </div>
                   <div className="mb-3">
                     <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400 mb-1">
