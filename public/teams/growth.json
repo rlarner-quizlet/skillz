@@ -1,7 +1,7 @@
 {
   "format": "skill-matrix-autosave",
   "version": 1,
-  "exportedAt": "2026-05-08T23:20:05.431Z",
+  "exportedAt": "2026-05-09T00:46:57.572Z",
   "data": {
     "skills": [
       "UI",
@@ -79,11 +79,11 @@
       "Retargeting",
       "Notifications",
       "Flashcards Sorting On",
+      "Signup Funnel Logging Fixes",
       "Match Results Screen",
       "Mini FC Copy Test",
       "Add To Calendar Test",
       "Student Driven Multiplayer",
-      "Signup Funnel Logging Fixes",
       "AI Coach Onboarding"
     ],
     "projectAssignments": {
@@ -106,7 +106,8 @@
         "members": [
           "Brian",
           "Dan W",
-          "Kara"
+          "Kara",
+          "Scott"
         ]
       },
       "Discord Integration": {
@@ -121,17 +122,20 @@
         ],
         "members": [
           "Tano",
-          "Bryce"
+          "Bryce",
+          "Coco"
         ]
       },
       "sGTM": {
         "skills": [
           "GTM",
-          "k8s/infra/pub/sub"
+          "k8s/infra/pub/sub",
+          "Product"
         ],
         "members": [
           "Leila",
-          "Mike"
+          "Mike",
+          "Arun"
         ]
       },
       "SEO-Optimized Title Tags": {
@@ -204,26 +208,56 @@
         ]
       },
       "Flashcards Sorting On": {
-        "skills": [],
-        "members": []
-      },
-      "Match Results Screen": {
-        "skills": [],
-        "members": []
-      },
-      "Mini FC Copy Test": {
-        "skills": [],
-        "members": []
-      },
-      "Add To Calendar Test": {
-        "skills": [],
-        "members": []
-      },
-      "Student Driven Multiplayer": {
-        "skills": [],
-        "members": []
+        "skills": [
+          "PHP",
+          "TypeScript",
+          "Growthbook",
+          "Product"
+        ],
+        "members": [
+          "Jay",
+          "Camille"
+        ]
       },
       "Signup Funnel Logging Fixes": {
+        "skills": [
+          "Analytics",
+          "Logging"
+        ],
+        "members": [
+          "Ayelen",
+          "Chris E",
+          "Rodri"
+        ]
+      },
+      "Match Results Screen": {
+        "skills": [
+          "TypeScript",
+          "Product"
+        ],
+        "members": [
+          "Anjumon",
+          "Ayelen"
+        ]
+      },
+      "Mini FC Copy Test": {
+        "skills": [
+          "Product",
+          "Growthbook"
+        ],
+        "members": [
+          "Anjumon"
+        ]
+      },
+      "Add To Calendar Test": {
+        "skills": [
+          "Product"
+        ],
+        "members": [
+          "Camille"
+        ]
+      },
+      "Student Driven Multiplayer": {
         "skills": [],
         "members": []
       },
