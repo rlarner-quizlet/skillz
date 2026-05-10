@@ -45,7 +45,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 'use client'
 
 import Image from 'next/image'
-import { Suspense, useState, useEffect, useSyncExternalStore, useRef } from 'react'
+import { Suspense, useState, useEffect, useSyncExternalStore, useRef, useCallback } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -307,6 +307,7 @@ function HomeContent() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const [state, setState] = useState<AppState>(() => loadState())
+  const [focusProject, setFocusProject] = useState<string | null>(null)
   const autosaveStateRef = useRef<AppState>(state)
   const lastAutosaveRef = useRef<string>('')
   const hasUnsavedTeamChangesRef = useRef(false)
@@ -667,6 +668,13 @@ function HomeContent() {
     router.push(target, { scroll: false })
   }
 
+  const clearFocusProject = useCallback(() => setFocusProject(null), [])
+
+  const focusProjectInProjectsTab = (project: string) => {
+    setFocusProject(project)
+    navigateToTab('projects')
+  }
+
   if (!isHydrated) return <div className="min-h-screen bg-gray-50" />
 
   return (
@@ -747,6 +755,7 @@ function HomeContent() {
                 cycleLevel={cycleLevel}
                 addMember={addMember}
                 removeMember={removeMember}
+                onProjectClick={focusProjectInProjectsTab}
               />
             )}
             {tab === 'projects' && (
@@ -761,6 +770,8 @@ function HomeContent() {
                 addProject={addProject}
                 removeProject={removeProject}
                 reorderProject={reorderProject}
+                focusProject={focusProject}
+                onFocusHandled={clearFocusProject}
               />
             )}
             {tab === 'manage'  && (
@@ -1090,7 +1101,7 @@ function GapsTab({ skills, members, projects, projectAssignments, getLevel }: {
 
 // ─── Members Tab ──────────────────────────────────────────────────────────────
 
-function MembersTab({ members, skills, projects, projectAssignments, getLevel, cycleLevel, addMember, removeMember }: {
+function MembersTab({ members, skills, projects, projectAssignments, getLevel, cycleLevel, addMember, removeMember, onProjectClick }: {
   members: string[]
   skills: string[]
   projects: string[]
@@ -1099,6 +1110,7 @@ function MembersTab({ members, skills, projects, projectAssignments, getLevel, c
   cycleLevel: (m: string, s: string) => void
   addMember: (name: string) => void
   removeMember: (name: string) => void
+  onProjectClick: (project: string) => void
 }) {
   const [memberInput, setMemberInput] = useState('')
   const submitMember = () => {
@@ -1170,12 +1182,15 @@ function MembersTab({ members, skills, projects, projectAssignments, getLevel, c
                     {assignedProjects.length > 0 ? (
                       <div className="flex flex-wrap gap-1.5">
                         {assignedProjects.map(project => (
-                          <span
+                          <button
                             key={project}
-                            className="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200"
+                            type="button"
+                            onClick={() => onProjectClick(project)}
+                            title={`View ${project} in Projects tab`}
+                            className="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 hover:underline transition-colors cursor-pointer"
                           >
                             {project}
-                          </span>
+                          </button>
                         ))}
                       </div>
                     ) : (
@@ -1233,6 +1248,8 @@ function ProjectsTab({
   addProject,
   removeProject,
   reorderProject,
+  focusProject,
+  onFocusHandled,
 }: {
   projects: string[]
   skills: string[]
@@ -1244,9 +1261,21 @@ function ProjectsTab({
   addProject: (name: string) => void
   removeProject: (name: string) => void
   reorderProject: (fromProject: string, toProject: string) => void
+  focusProject: string | null
+  onFocusHandled: () => void
 }) {
   const [projectInput, setProjectInput] = useState('')
   const [draggingProject, setDraggingProject] = useState<string | null>(null)
+  const sectionRefs = useRef<Record<string, HTMLElement | null>>({})
+
+  useEffect(() => {
+    if (!focusProject) return
+    const el = sectionRefs.current[focusProject]
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+    onFocusHandled()
+  }, [focusProject, onFocusHandled])
   const submitProject = () => {
     addProject(projectInput)
     setProjectInput('')
@@ -1315,6 +1344,7 @@ function ProjectsTab({
         return (
           <section
             key={project}
+            ref={el => { sectionRefs.current[project] = el }}
             draggable
             onDragStart={() => setDraggingProject(project)}
             onDragEnd={() => setDraggingProject(null)}
