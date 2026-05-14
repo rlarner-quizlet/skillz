@@ -1,7 +1,7 @@
 {
   "format": "skill-matrix-autosave",
   "version": 1,
-  "exportedAt": "2026-05-09T00:57:26.738Z",
+  "exportedAt": "2026-05-14T23:48:24.711Z",
   "data": {
     "skills": [
       "UI",
@@ -33,7 +33,9 @@
       "Kotlin",
       "Growthbook",
       "Airflow",
-      "SEO"
+      "SEO",
+      "Legal",
+      "ML"
     ],
     "members": [
       "Ayelen",
@@ -58,7 +60,6 @@
       "Ina",
       "Kara",
       "Scott",
-      "Ryan",
       "Bruels",
       "Chris E",
       "Arun",
@@ -66,7 +67,13 @@
       "Anjumon",
       "Joel",
       "Jay",
-      "Takeshi"
+      "Takeshi",
+      "Ben Cohen",
+      "John R",
+      "Shub",
+      "Sudeep",
+      "Vincent",
+      "Savitha"
     ],
     "projects": [
       "Google Classroom Add-On",
@@ -107,7 +114,8 @@
           "Brian",
           "Dan W",
           "Kara",
-          "Scott"
+          "Scott",
+          "Alyssa"
         ]
       },
       "Discord Integration": {
@@ -417,7 +425,12 @@
       "Leila||Airflow": 1,
       "Leila||Datadog": 2,
       "Takeshi||SEO": 3,
-      "Takeshi||Product": 2
+      "Takeshi||Product": 2,
+      "Ross||QA": 3,
+      "Ross||Study Paths": 2,
+      "Ben Cohen||Analytics": 3,
+      "Ben Cohen||Periscope": 3,
+      "John R||User Research": 3
     }
   }
 }
