@@ -785,6 +785,7 @@ function HomeContent() {
                 getLevel={getLevel}
                 cycleLevel={cycleLevel}
                 addSkill={addSkill}
+                onGoToMembers={() => navigateToTab('members')}
               />
             )}
             {tab === 'gaps'    && (
@@ -794,6 +795,8 @@ function HomeContent() {
                 projects={projects}
                 projectAssignments={projectAssignments}
                 getLevel={getLevel}
+                onGoToMembers={() => navigateToTab('members')}
+                onGoToManage={() => navigateToTab('manage')}
               />
             )}
             {tab === 'members' && (
@@ -810,6 +813,8 @@ function HomeContent() {
                 locations={locations}
                 memberLocations={memberLocations}
                 setMemberLocation={setMemberLocation}
+                onGoToManage={() => navigateToTab('manage')}
+                onGoToProjects={() => navigateToTab('projects')}
               />
             )}
             {tab === 'projects' && (
@@ -827,6 +832,7 @@ function HomeContent() {
                 focusProject={focusProject}
                 onFocusHandled={clearFocusProject}
                 memberLocations={memberLocations}
+                onGoToManage={() => navigateToTab('manage')}
               />
             )}
             {tab === 'manage'  && (
@@ -852,12 +858,13 @@ function HomeContent() {
 
 // ─── Matrix Tab ───────────────────────────────────────────────────────────────
 
-function MatrixTab({ skills, members, getLevel, cycleLevel, addSkill }: {
+function MatrixTab({ skills, members, getLevel, cycleLevel, addSkill, onGoToMembers }: {
   skills: string[]
   members: string[]
   getLevel: (m: string, s: string) => Proficiency
   cycleLevel: (m: string, s: string) => void
   addSkill: (name: string) => void
+  onGoToMembers: () => void
 }) {
   const [skillInput, setSkillInput] = useState('')
   const submitSkill = () => {
@@ -956,7 +963,17 @@ function MatrixTab({ skills, members, getLevel, cycleLevel, addSkill }: {
           </div>
         </>
       ) : (
-        <Empty text="Add team members and skills to get started." />
+        <p className="text-sm text-gray-400 py-4">
+          Add{' '}
+          <button
+            type="button"
+            onClick={onGoToMembers}
+            className="text-gray-600 underline underline-offset-2 hover:text-gray-900 transition-colors"
+          >
+            team members
+          </button>
+          {' '}and skills to get started.
+        </p>
       )}
 
       <div className="pt-4 border-t border-gray-100">
@@ -975,12 +992,14 @@ function MatrixTab({ skills, members, getLevel, cycleLevel, addSkill }: {
 
 // ─── Gap Analysis Tab ─────────────────────────────────────────────────────────
 
-function GapsTab({ skills, members, projects, projectAssignments, getLevel }: {
+function GapsTab({ skills, members, projects, projectAssignments, getLevel, onGoToMembers, onGoToManage }: {
   skills: string[]
   members: string[]
   projects: string[]
   projectAssignments: ProjectAssignments
   getLevel: (m: string, s: string) => Proficiency
+  onGoToMembers: () => void
+  onGoToManage: () => void
 }) {
   const [sortBy, setSortBy] = useState<'skill' | 'gap' | 'coverage' | 'demand'>('gap')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
@@ -1000,7 +1019,27 @@ function GapsTab({ skills, members, projects, projectAssignments, getLevel }: {
   }
 
   if (!members.length || !skills.length)
-    return <Empty text="Add team members and skills in the Manage tab." />
+    return (
+      <p className="text-sm text-gray-400 py-4">
+        Add{' '}
+        <button
+          type="button"
+          onClick={onGoToMembers}
+          className="text-gray-600 underline underline-offset-2 hover:text-gray-900 transition-colors"
+        >
+          team members
+        </button>
+        {' '}and{' '}
+        <button
+          type="button"
+          onClick={onGoToManage}
+          className="text-gray-600 underline underline-offset-2 hover:text-gray-900 transition-colors"
+        >
+          skills
+        </button>
+        {' '}to populate the gap analysis
+      </p>
+    )
 
   const skillRows = skills.map(s => {
     const rows = members.map(m => ({ m, lv: getLevel(m, s) }))
@@ -1159,7 +1198,7 @@ function GapsTab({ skills, members, projects, projectAssignments, getLevel }: {
 
 // ─── Members Tab ──────────────────────────────────────────────────────────────
 
-function MembersTab({ members, skills, projects, projectAssignments, getLevel, cycleLevel, addMember, removeMember, onProjectClick, locations, memberLocations, setMemberLocation }: {
+function MembersTab({ members, skills, projects, projectAssignments, getLevel, cycleLevel, addMember, removeMember, onProjectClick, locations, memberLocations, setMemberLocation, onGoToManage, onGoToProjects }: {
   members: string[]
   skills: string[]
   projects: string[]
@@ -1172,6 +1211,8 @@ function MembersTab({ members, skills, projects, projectAssignments, getLevel, c
   locations: string[]
   memberLocations: Record<string, string>
   setMemberLocation: (member: string, location: string) => void
+  onGoToManage: () => void
+  onGoToProjects: () => void
 }) {
   const [memberInput, setMemberInput] = useState('')
   const submitMember = () => {
@@ -1253,7 +1294,16 @@ function MembersTab({ members, skills, projects, projectAssignments, getLevel, c
                         ))}
                       </select>
                     ) : (
-                      <p className="text-xs text-gray-400">Add locations in the Manage tab.</p>
+                      <p className="text-xs text-gray-400">
+                        Add locations in the{' '}
+                        <button
+                          type="button"
+                          onClick={onGoToManage}
+                          className="text-gray-600 underline underline-offset-2 hover:text-gray-900 transition-colors"
+                        >
+                          Manage tab
+                        </button>.
+                      </p>
                     )}
                   </div>
                   <div className="mb-3">
@@ -1275,7 +1325,17 @@ function MembersTab({ members, skills, projects, projectAssignments, getLevel, c
                         ))}
                       </div>
                     ) : (
-                      <p className="text-xs text-gray-400">No projects assigned.</p>
+                      <p className="text-xs text-gray-400">
+                        No{' '}
+                        <button
+                          type="button"
+                          onClick={onGoToProjects}
+                          className="text-gray-600 underline underline-offset-2 hover:text-gray-900 transition-colors"
+                        >
+                          projects
+                        </button>
+                        {' '}assigned.
+                      </p>
                     )}
                   </div>
                   {skills.length > 0 && (
@@ -1332,6 +1392,7 @@ function ProjectsTab({
   focusProject,
   onFocusHandled,
   memberLocations,
+  onGoToManage,
 }: {
   projects: string[]
   skills: string[]
@@ -1346,6 +1407,7 @@ function ProjectsTab({
   focusProject: string | null
   onFocusHandled: () => void
   memberLocations: Record<string, string>
+  onGoToManage: () => void
 }) {
   const [projectInput, setProjectInput] = useState('')
   const [draggingProject, setDraggingProject] = useState<string | null>(null)
@@ -1466,7 +1528,16 @@ function ProjectsTab({
               <div>
                 <p className="text-xs font-medium text-gray-600 mb-2">Required skills</p>
                 {skills.length === 0 ? (
-                  <p className="text-xs text-gray-400">No skills yet. Add skills in the Manage tab.</p>
+                  <p className="text-xs text-gray-400">
+                    No skills yet. Add skills in the{' '}
+                    <button
+                      type="button"
+                      onClick={onGoToManage}
+                      className="text-gray-600 underline underline-offset-2 hover:text-gray-900 transition-colors"
+                    >
+                      Manage tab
+                    </button>.
+                  </p>
                 ) : (
                   <div className="flex flex-wrap gap-2">
                     {sortedSkills.map(skill => {
@@ -1513,7 +1584,16 @@ function ProjectsTab({
               <div>
                 <p className="text-xs font-medium text-gray-600 mb-2">Associated team members</p>
                 {members.length === 0 ? (
-                  <p className="text-xs text-gray-400">No team members yet. Add members in the Manage tab.</p>
+                  <p className="text-xs text-gray-400">
+                    No team members yet. Add members in the{' '}
+                    <button
+                      type="button"
+                      onClick={onGoToManage}
+                      className="text-gray-600 underline underline-offset-2 hover:text-gray-900 transition-colors"
+                    >
+                      Manage tab
+                    </button>.
+                  </p>
                 ) : (
                   <div className="flex flex-wrap gap-2">
                     {sortedMembers.map(member => {
