@@ -1,7 +1,7 @@
 {
   "format": "skill-matrix-autosave",
   "version": 1,
-  "exportedAt": "2026-05-14T23:48:24.711Z",
+  "exportedAt": "2026-05-15T00:03:23.064Z",
   "data": {
     "skills": [
       "UI",
@@ -90,7 +90,6 @@
       "Match Results Screen",
       "Mini FC Copy Test",
       "Add To Calendar Test",
-      "Student Driven Multiplayer",
       "AI Coach Onboarding"
     ],
     "projectAssignments": {
@@ -115,7 +114,9 @@
           "Dan W",
           "Kara",
           "Scott",
-          "Alyssa"
+          "Alyssa",
+          "Ayelen",
+          "Leila"
         ]
       },
       "Discord Integration": {
@@ -131,7 +132,11 @@
         "members": [
           "Tano",
           "Bryce",
-          "Coco"
+          "Coco",
+          "Mike",
+          "Dami",
+          "Samba",
+          "Ina"
         ]
       },
       "sGTM": {
@@ -143,7 +148,8 @@
         "members": [
           "Leila",
           "Mike",
-          "Arun"
+          "Arun",
+          "Bruels"
         ]
       },
       "SEO-Optimized Title Tags": {
@@ -204,7 +210,8 @@
         ],
         "members": [
           "Leila",
-          "Romina"
+          "Romina",
+          "Arun"
         ]
       },
       "Notifications": {
@@ -264,10 +271,6 @@
         "members": [
           "Camille"
         ]
-      },
-      "Student Driven Multiplayer": {
-        "skills": [],
-        "members": []
       },
       "AI Coach Onboarding": {
         "skills": [],
@@ -430,7 +433,51 @@
       "Ross||Study Paths": 2,
       "Ben Cohen||Analytics": 3,
       "Ben Cohen||Periscope": 3,
-      "John R||User Research": 3
+      "John R||User Research": 3,
+      "Sudeep||Legal": 3
+    },
+    "locations": [
+      "London",
+      "SF",
+      "Argentina",
+      "NYC",
+      "Seattle"
+    ],
+    "memberLocations": {
+      "Alyssa": "NYC",
+      "Anjumon": "London",
+      "Arun": "SF",
+      "Austin": "SF",
+      "Ayelen": "Argentina",
+      "Ben Cohen": "SF",
+      "Brian": "Argentina",
+      "Bruels": "Seattle",
+      "Bryce": "SF",
+      "Camille": "NYC",
+      "Chris E": "SF",
+      "Coco": "Argentina",
+      "Dami": "Argentina",
+      "Dan W": "Argentina",
+      "Elaina": "SF",
+      "Ina": "SF",
+      "Jay": "Seattle",
+      "Joel": "NYC",
+      "John R": "NYC",
+      "Leila": "Argentina",
+      "Mike": "Argentina",
+      "Nandita": "SF",
+      "Neil": "SF",
+      "Rodri": "Argentina",
+      "Romina": "Argentina",
+      "Ross": "SF",
+      "Samba": "Argentina",
+      "Savitha": "Seattle",
+      "Shub": "SF",
+      "Sudeep": "NYC",
+      "Takeshi": "SF",
+      "Tano": "Argentina",
+      "Vincent": "NYC",
+      "Yang": "SF"
     }
   }
 }

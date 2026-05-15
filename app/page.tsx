@@ -77,6 +77,8 @@ interface AppState {
   projects: string[]
   projectAssignments: ProjectAssignments
   matrix: Record<string, Proficiency>
+  locations: string[]
+  memberLocations: Record<string, string>
 }
 
 interface SkillMatrixExport {
@@ -144,7 +146,7 @@ const AUTOSAVE_INTERVAL_MS = 60_000
 const DEFAULT_PROJECT_CAPACITY = 1
 const TECH_DESIGN_PROJECT_CAPACITY = 2
 const mk = (m: string, s: string) => `${m}||${s}`
-const EMPTY: AppState = { skills: [], members: [], projects: [], projectAssignments: {}, matrix: {} }
+const EMPTY: AppState = { skills: [], members: [], projects: [], projectAssignments: {}, matrix: {}, locations: [], memberLocations: {} }
 const IMPORTED_SKILL_LEVEL: Proficiency = 2
 const loadedTeamSession = {
   name: null as string | null,
@@ -269,9 +271,11 @@ function normalizeAppState(value: unknown): AppState {
   const skills = Array.isArray(parsed.skills) ? [...new Set(parsed.skills.filter(v => typeof v === 'string'))] : []
   const members = Array.isArray(parsed.members) ? [...new Set(parsed.members.filter(v => typeof v === 'string'))] : []
   const projects = Array.isArray(parsed.projects) ? [...new Set(parsed.projects.filter(v => typeof v === 'string'))] : []
+  const locations = Array.isArray(parsed.locations) ? [...new Set(parsed.locations.filter(v => typeof v === 'string'))] : []
 
   const skillSet = new Set(skills)
   const memberSet = new Set(members)
+  const locationSet = new Set(locations)
   const rawAssignments = normalizeProjectAssignments(parsed.projectAssignments)
   const projectAssignments: ProjectAssignments = {}
 
@@ -283,12 +287,23 @@ function normalizeAppState(value: unknown): AppState {
     }
   })
 
+  const memberLocations: Record<string, string> = {}
+  if (parsed.memberLocations && typeof parsed.memberLocations === 'object') {
+    Object.entries(parsed.memberLocations as Record<string, unknown>).forEach(([member, loc]) => {
+      if (!memberSet.has(member)) return
+      if (typeof loc !== 'string' || !locationSet.has(loc)) return
+      memberLocations[member] = loc
+    })
+  }
+
   return {
     skills,
     members,
     projects,
     projectAssignments,
     matrix: normalizeMatrix(parsed.matrix, members, skills),
+    locations,
+    memberLocations,
   }
 }
 
@@ -409,6 +424,8 @@ function HomeContent() {
   const skills = Array.isArray(state.skills) ? state.skills : []
   const members = Array.isArray(state.members) ? state.members : []
   const projects = Array.isArray(state.projects) ? state.projects : []
+  const locations = Array.isArray(state.locations) ? state.locations : []
+  const memberLocations = state.memberLocations && typeof state.memberLocations === 'object' ? state.memberLocations : {}
   const projectAssignments = normalizeProjectAssignments(state.projectAssignments)
   const matrix = state.matrix && typeof state.matrix === 'object' ? state.matrix : {}
 
@@ -582,12 +599,46 @@ function HomeContent() {
           members: config.members.filter(m => m !== name),
         }
       })
+      const nextMemberLocations = { ...(prev.memberLocations ?? {}) }
+      delete nextMemberLocations[name]
       return {
         ...prev,
         members: prev.members.filter(m => m !== name),
         projectAssignments: nextAssignments,
         matrix: m2,
+        memberLocations: nextMemberLocations,
       }
+    })
+
+  const addLocation = (name: string) => {
+    setState(prev => {
+      const existing = Array.isArray(prev.locations) ? prev.locations : []
+      const toAdd = parseNewEntries(name, existing)
+      if (!toAdd.length) return prev
+      return { ...prev, locations: [...existing, ...toAdd] }
+    })
+  }
+
+  const removeLocation = (name: string) =>
+    setState(prev => {
+      const existing = Array.isArray(prev.locations) ? prev.locations : []
+      const nextMemberLocations: Record<string, string> = {}
+      Object.entries(prev.memberLocations ?? {}).forEach(([member, loc]) => {
+        if (loc !== name) nextMemberLocations[member] = loc
+      })
+      return {
+        ...prev,
+        locations: existing.filter(l => l !== name),
+        memberLocations: nextMemberLocations,
+      }
+    })
+
+  const setMemberLocation = (member: string, location: string) =>
+    setState(prev => {
+      const next = { ...(prev.memberLocations ?? {}) }
+      if (!location) delete next[member]
+      else next[member] = location
+      return { ...prev, memberLocations: next }
     })
 
   const removeProject = (name: string) =>
@@ -646,7 +697,7 @@ function HomeContent() {
     })
 
   const resetAll = () =>
-    setState({ skills: [], members: [], projects: [], projectAssignments: {}, matrix: {} })
+    setState({ skills: [], members: [], projects: [], projectAssignments: {}, matrix: {}, locations: [], memberLocations: {} })
 
   const uncovered = skills.filter(s => !members.some(m => getLevel(m, s) > 0)).length
 
@@ -756,6 +807,9 @@ function HomeContent() {
                 addMember={addMember}
                 removeMember={removeMember}
                 onProjectClick={focusProjectInProjectsTab}
+                locations={locations}
+                memberLocations={memberLocations}
+                setMemberLocation={setMemberLocation}
               />
             )}
             {tab === 'projects' && (
@@ -772,14 +826,18 @@ function HomeContent() {
                 reorderProject={reorderProject}
                 focusProject={focusProject}
                 onFocusHandled={clearFocusProject}
+                memberLocations={memberLocations}
               />
             )}
             {tab === 'manage'  && (
               <ManageTab
                 skills={skills}   members={members} projects={projects}
+                locations={locations}
+                memberLocations={memberLocations}
                 addSkill={addSkill}     removeSkill={removeSkill}
                 addMember={addMember}   removeMember={removeMember}
                 addProject={addProject} removeProject={removeProject}
+                addLocation={addLocation} removeLocation={removeLocation}
                 importData={importData}
                 exportData={exportData}
                 resetAll={resetAll}
@@ -1101,7 +1159,7 @@ function GapsTab({ skills, members, projects, projectAssignments, getLevel }: {
 
 // ─── Members Tab ──────────────────────────────────────────────────────────────
 
-function MembersTab({ members, skills, projects, projectAssignments, getLevel, cycleLevel, addMember, removeMember, onProjectClick }: {
+function MembersTab({ members, skills, projects, projectAssignments, getLevel, cycleLevel, addMember, removeMember, onProjectClick, locations, memberLocations, setMemberLocation }: {
   members: string[]
   skills: string[]
   projects: string[]
@@ -1111,6 +1169,9 @@ function MembersTab({ members, skills, projects, projectAssignments, getLevel, c
   addMember: (name: string) => void
   removeMember: (name: string) => void
   onProjectClick: (project: string) => void
+  locations: string[]
+  memberLocations: Record<string, string>
+  setMemberLocation: (member: string, location: string) => void
 }) {
   const [memberInput, setMemberInput] = useState('')
   const submitMember = () => {
@@ -1124,6 +1185,7 @@ function MembersTab({ members, skills, projects, projectAssignments, getLevel, c
   const hasMembers = members.length > 0
   const sortedMembers = [...members].sort((a, b) => a.localeCompare(b))
   const sortedSkills = [...skills].sort((a, b) => a.localeCompare(b))
+  const sortedLocations = [...locations].sort((a, b) => a.localeCompare(b))
 
   return (
     <div className="space-y-4">
@@ -1174,6 +1236,25 @@ function MembersTab({ members, skills, projects, projectAssignments, getLevel, c
                     >
                       Delete
                     </button>
+                  </div>
+                  <div className="mb-3">
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400 mb-1">
+                      Location
+                    </p>
+                    {sortedLocations.length > 0 ? (
+                      <select
+                        value={memberLocations[m] ?? ''}
+                        onChange={e => setMemberLocation(m, e.target.value)}
+                        className="text-xs border border-gray-200 rounded-md px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-gray-300"
+                      >
+                        <option value="">— No location —</option>
+                        {sortedLocations.map(loc => (
+                          <option key={loc} value={loc}>{loc}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <p className="text-xs text-gray-400">Add locations in the Manage tab.</p>
+                    )}
                   </div>
                   <div className="mb-3">
                     <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400 mb-1">
@@ -1250,6 +1331,7 @@ function ProjectsTab({
   reorderProject,
   focusProject,
   onFocusHandled,
+  memberLocations,
 }: {
   projects: string[]
   skills: string[]
@@ -1263,6 +1345,7 @@ function ProjectsTab({
   reorderProject: (fromProject: string, toProject: string) => void
   focusProject: string | null
   onFocusHandled: () => void
+  memberLocations: Record<string, string>
 }) {
   const [projectInput, setProjectInput] = useState('')
   const [draggingProject, setDraggingProject] = useState<string | null>(null)
@@ -1435,6 +1518,7 @@ function ProjectsTab({
                   <div className="flex flex-wrap gap-2">
                     {sortedMembers.map(member => {
                       const selected = config.members.includes(member)
+                      const location = memberLocations[member]
                       return (
                         <button
                           key={member}
@@ -1448,6 +1532,7 @@ function ProjectsTab({
                         >
                           {selected ? '✓ ' : ''}
                           {member}
+                          {location && <span className="text-gray-500"> · {location}</span>}
                         </button>
                       )
                     })}
@@ -1470,17 +1555,21 @@ function ProjectsTab({
                   </p>
                 ) : (
                   <div className="flex flex-wrap gap-2">
-                    {skilledAvailableMembers.map(({ member, maxLevel }) => (
-                      <button
-                        key={member}
-                        type="button"
-                        onClick={() => toggleProjectMember(project, member)}
-                        title={`${member}: ${LEVELS[maxLevel]} across required skills`}
-                        className={`text-xs px-2.5 py-1 rounded-full border transition-colors hover:brightness-95 ${MEMBER_EXPERTISE_BADGE[maxLevel]}`}
-                      >
-                        + {member}
-                      </button>
-                    ))}
+                    {skilledAvailableMembers.map(({ member, maxLevel }) => {
+                      const location = memberLocations[member]
+                      return (
+                        <button
+                          key={member}
+                          type="button"
+                          onClick={() => toggleProjectMember(project, member)}
+                          title={`${member}: ${LEVELS[maxLevel]} across required skills`}
+                          className={`text-xs px-2.5 py-1 rounded-full border transition-colors hover:brightness-95 ${MEMBER_EXPERTISE_BADGE[maxLevel]}`}
+                        >
+                          + {member}
+                          {location && <span className="text-gray-500"> · {location}</span>}
+                        </button>
+                      )
+                    })}
                   </div>
                 )}
               </div>
@@ -1511,12 +1600,16 @@ function ManageTab({
   skills,
   members,
   projects,
+  locations,
+  memberLocations,
   addSkill,
   removeSkill,
   addMember,
   removeMember,
   addProject,
   removeProject,
+  addLocation,
+  removeLocation,
   importData,
   exportData,
   resetAll,
@@ -1524,12 +1617,16 @@ function ManageTab({
   skills: string[]
   members: string[]
   projects: string[]
+  locations: string[]
+  memberLocations: Record<string, string>
   addSkill: (n: string) => void
   removeSkill: (n: string) => void
   addMember: (n: string) => void
   removeMember: (n: string) => void
   addProject: (n: string) => void
   removeProject: (n: string) => void
+  addLocation: (n: string) => void
+  removeLocation: (n: string) => void
   importData: (input: string) => DataIoResult
   exportData: () => DataIoResult
   resetAll: () => void
@@ -1537,6 +1634,7 @@ function ManageTab({
   const [si, setSi] = useState('')
   const [mi, setMi] = useState('')
   const [pi, setPi] = useState('')
+  const [li, setLi] = useState('')
   const [bulkImport, setBulkImport] = useState('')
   const [ioMessage, setIoMessage] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
@@ -1544,6 +1642,7 @@ function ManageTab({
   const submitSkill = () => { addSkill(si); setSi('') }
   const submitMember = () => { addMember(mi); setMi('') }
   const submitProject = () => { addProject(pi); setPi('') }
+  const submitLocation = () => { addLocation(li); setLi('') }
   const submitImport = () => {
     if (!bulkImport.trim()) {
       fileInputRef.current?.click()
@@ -1553,22 +1652,29 @@ function ManageTab({
     setIoMessage({ tone: result.ok ? 'ok' : 'error', text: result.message })
     if (result.ok) setBulkImport('')
   }
-  const hasAnyData = skills.length > 0 || members.length > 0 || projects.length > 0
+  const hasAnyData = skills.length > 0 || members.length > 0 || projects.length > 0 || locations.length > 0
   const sortedSkills = [...skills].sort((a, b) => a.localeCompare(b))
   const sortedProjects = [...projects].sort((a, b) => a.localeCompare(b))
+  const sortedLocations = [...locations].sort((a, b) => a.localeCompare(b))
+  const locationCounts: Record<string, number> = {}
+  locations.forEach(loc => { locationCounts[loc] = 0 })
+  Object.values(memberLocations).forEach(loc => {
+    if (loc in locationCounts) locationCounts[loc] += 1
+  })
   const handleRemoveProject = (project: string) => {
     if (!window.confirm(`Delete project "${project}"? This also removes its skill and member assignments.`)) return
     removeProject(project)
   }
   const handleResetAll = () => {
     if (!hasAnyData) return
-    if (!window.confirm('Reset all data? This will delete all team members, skills, projects, and skill levels.')) {
+    if (!window.confirm('Reset all data? This will delete all team members, skills, projects, locations, and skill levels.')) {
       return
     }
     resetAll()
     setSi('')
     setMi('')
     setPi('')
+    setLi('')
     setBulkImport('')
   }
   const importFromFile = async (file: File) => {
@@ -1614,6 +1720,18 @@ function ManageTab({
           items={sortedProjects}
           onRemove={handleRemoveProject}
           empty="No projects added yet."
+        />
+      </Section>
+
+      <Section title="Locations">
+        <InputRow
+          value={li} placeholder="e.g. NYC, Remote, Berlin"
+          onChange={setLi} onSubmit={submitLocation} label="Add location"
+        />
+        <TagList
+          items={sortedLocations} onRemove={removeLocation}
+          counts={locationCounts}
+          empty="No locations added yet."
         />
       </Section>
 
@@ -1718,28 +1836,35 @@ function InputRow({ value, placeholder, onChange, onSubmit, label }: {
   )
 }
 
-function TagList({ items, onRemove, empty }: {
+function TagList({ items, onRemove, empty, counts }: {
   items: string[]
   onRemove: (item: string) => void
   empty: string
+  counts?: Record<string, number>
 }) {
   if (!items.length) return <p className="text-sm text-gray-400">{empty}</p>
   return (
     <div className="flex flex-wrap gap-2">
-      {items.map(item => (
-        <span
-          key={item}
-          className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-full px-3 py-1 text-sm text-gray-700"
-        >
-          {item}
-          <button
-            onClick={() => onRemove(item)}
-            className="text-gray-400 hover:text-red-500 transition-colors leading-none"
+      {items.map(item => {
+        const count = counts?.[item]
+        return (
+          <span
+            key={item}
+            className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-full px-3 py-1 text-sm text-gray-700"
           >
-            ×
-          </button>
-        </span>
-      ))}
+            {item}
+            {count !== undefined && (
+              <span className="text-xs text-gray-500">· {count}</span>
+            )}
+            <button
+              onClick={() => onRemove(item)}
+              className="text-gray-400 hover:text-red-500 transition-colors leading-none"
+            >
+              ×
+            </button>
+          </span>
+        )
+      })}
     </div>
   )
 }
