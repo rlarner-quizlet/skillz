@@ -1,7 +1,7 @@
 {
   "format": "skill-matrix-autosave",
   "version": 1,
-  "exportedAt": "2026-05-15T00:03:23.064Z",
+  "exportedAt": "2026-05-22T07:39:32.669Z",
   "data": {
     "skills": [
       "UI",
@@ -16,7 +16,6 @@
       "PHP",
       "GTM",
       "QZAdmin",
-      "ML/Prompts",
       "Braze",
       "Logging",
       "Periscope",
@@ -35,7 +34,9 @@
       "Airflow",
       "SEO",
       "Legal",
-      "ML"
+      "ML",
+      "Python",
+      "dbt"
     ],
     "members": [
       "Ayelen",
@@ -73,7 +74,9 @@
       "Shub",
       "Sudeep",
       "Vincent",
-      "Savitha"
+      "Savitha",
+      "Hernan",
+      "Amy Ma"
     ],
     "projects": [
       "Google Classroom Add-On",
@@ -83,14 +86,10 @@
       "Spaced Repetition",
       "Streaks",
       "Canva",
-      "Retargeting",
-      "Notifications",
-      "Flashcards Sorting On",
       "Signup Funnel Logging Fixes",
       "Match Results Screen",
       "Mini FC Copy Test",
-      "Add To Calendar Test",
-      "AI Coach Onboarding"
+      "Add To Calendar Test"
     ],
     "projectAssignments": {
       "Google Classroom Add-On": {
@@ -104,10 +103,11 @@
           "Logging",
           "PHP",
           "Study Paths",
-          "Tech Designs",
           "UI",
           "Product",
-          "Design"
+          "Design",
+          "Analytics",
+          "TypeScript"
         ],
         "members": [
           "Brian",
@@ -115,8 +115,7 @@
           "Kara",
           "Scott",
           "Alyssa",
-          "Ayelen",
-          "Leila"
+          "Amy Ma"
         ]
       },
       "Discord Integration": {
@@ -130,13 +129,11 @@
           "Product"
         ],
         "members": [
-          "Tano",
-          "Bryce",
           "Coco",
           "Mike",
           "Dami",
-          "Samba",
-          "Ina"
+          "Ina",
+          "Tano"
         ]
       },
       "sGTM": {
@@ -147,20 +144,23 @@
         ],
         "members": [
           "Leila",
-          "Mike",
           "Arun",
-          "Bruels"
+          "Bruels",
+          "Hernan",
+          "Romina"
         ]
       },
       "SEO-Optimized Title Tags": {
         "skills": [
           "Product",
           "Airflow",
-          "SEO"
+          "SEO",
+          "ML"
         ],
         "members": [
           "Nandita",
-          "Takeshi"
+          "Takeshi",
+          "Hernan"
         ]
       },
       "Spaced Repetition": {
@@ -177,7 +177,11 @@
         "skills": [
           "Tech Designs",
           "Design",
-          "Product"
+          "Product",
+          "TypeScript",
+          "UI",
+          "Go",
+          "WebSockets"
         ],
         "members": [
           "Anjumon",
@@ -193,45 +197,7 @@
           "Design"
         ],
         "members": [
-          "Dami",
-          "Tano",
-          "Samba",
-          "Mike",
-          "Jay",
-          "Leila"
-        ]
-      },
-      "Retargeting": {
-        "skills": [
-          "Airflow",
-          "Datadog",
-          "Periscope",
-          "Tech Designs"
-        ],
-        "members": [
-          "Leila",
-          "Romina",
-          "Arun"
-        ]
-      },
-      "Notifications": {
-        "skills": [
-          "Tech Designs"
-        ],
-        "members": [
-          "Yang"
-        ]
-      },
-      "Flashcards Sorting On": {
-        "skills": [
-          "PHP",
-          "TypeScript",
-          "Growthbook",
-          "Product"
-        ],
-        "members": [
-          "Jay",
-          "Camille"
+          "Dami"
         ]
       },
       "Signup Funnel Logging Fixes": {
@@ -242,13 +208,15 @@
         "members": [
           "Ayelen",
           "Chris E",
-          "Rodri"
+          "Rodri",
+          "Hernan"
         ]
       },
       "Match Results Screen": {
         "skills": [
           "TypeScript",
-          "Product"
+          "Product",
+          "Growthbook"
         ],
         "members": [
           "Anjumon",
@@ -266,15 +234,15 @@
       },
       "Add To Calendar Test": {
         "skills": [
-          "Product"
+          "Product",
+          "Growthbook",
+          "UI",
+          "TypeScript"
         ],
         "members": [
-          "Camille"
+          "Camille",
+          "Samba"
         ]
-      },
-      "AI Coach Onboarding": {
-        "skills": [],
-        "members": []
       }
     },
     "matrix": {
@@ -303,7 +271,6 @@
       "Mike||UI": 2,
       "Mike||Auth": 2,
       "Mike||Go": 2,
-      "Mike||ML/Prompts": 2,
       "Mike||k8s/infra/pub/sub": 2,
       "Nandita||Datadog": 2,
       "Rodri||UI": 2,
@@ -337,7 +304,6 @@
       "Ross||Tech Designs": 3,
       "Yang||Tech Designs": 3,
       "Alyssa||Analytics": 3,
-      "Austin||ML/Prompts": 2,
       "Austin||Product": 3,
       "Coco||Design": 3,
       "Dami||Tech Designs": 2,
@@ -347,7 +313,6 @@
       "Neil||Analytics": 3,
       "Nandita||PHP": 1,
       "Nandita||Go": 1,
-      "Nandita||ML/Prompts": 2,
       "Ross||Analytics": 1,
       "Ross||QZAdmin": 2,
       "Ross||WebSockets": 1,
@@ -361,7 +326,6 @@
       "Nandita||k8s/infra/pub/sub": 1,
       "Yang||Braze": 2,
       "Yang||Periscope": 2,
-      "Leila||ML/Prompts": 1,
       "Leila||Go": 1,
       "Ayelen||Go": 1,
       "Austin||TypeScript": 0,
@@ -393,7 +357,6 @@
       "Bruels||iOS/Swift": 3,
       "Bruels||k8s/infra/pub/sub": 2,
       "Bruels||Logging": 2,
-      "Bruels||ML/Prompts": 2,
       "Bruels||PHP": 2,
       "Bruels||Tech Designs": 3,
       "Bruels||TypeScript": 3,
@@ -403,7 +366,7 @@
       "Chris E||Analytics": 3,
       "Chris E||Periscope": 3,
       "Anjumon||Product": 2,
-      "Arun||Product": 2,
+      "Arun||Product": 3,
       "Camille||Product": 2,
       "Joel||Design": 3,
       "Jay||Analytics": 2,
@@ -434,7 +397,29 @@
       "Ben Cohen||Analytics": 3,
       "Ben Cohen||Periscope": 3,
       "John R||User Research": 3,
-      "Sudeep||Legal": 3
+      "Sudeep||Legal": 3,
+      "Hernan||Airflow": 2,
+      "Hernan||Analytics": 2,
+      "Hernan||Datadog": 2,
+      "Hernan||Project Management": 2,
+      "Hernan||Tech Designs": 2,
+      "Hernan||DB": 3,
+      "Hernan||Python": 3,
+      "Hernan||dbt": 2,
+      "Hernan||ML": 1,
+      "Hernan||Go": 1,
+      "Hernan||GTM": 1,
+      "Hernan||TypeScript": 1,
+      "Arun||Braze": 2,
+      "Arun||Analytics": 2,
+      "Arun||Project Management": 2,
+      "Amy Ma||Analytics": 3,
+      "Amy Ma||Periscope": 3,
+      "Austin||ML": 2,
+      "Mike||ML": 2,
+      "Leila||ML": 1,
+      "Bruels||ML": 2,
+      "Nandita||ML": 2
     },
     "locations": [
       "London",
@@ -477,7 +462,8 @@
       "Takeshi": "SF",
       "Tano": "Argentina",
       "Vincent": "NYC",
-      "Yang": "SF"
+      "Yang": "SF",
+      "Hernan": "Argentina"
     }
   }
 }
