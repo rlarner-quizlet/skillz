@@ -873,6 +873,7 @@ function MatrixTab({ skills, members, getLevel, cycleLevel, addSkill, onGoToMemb
   }
   const canRenderMatrix = members.length > 0 && skills.length > 0
   const sortedMembers = [...members].sort((a, b) => a.localeCompare(b))
+  const sortedSkills = [...skills].sort((a, b) => a.localeCompare(b))
 
   return (
     <div className="space-y-4">
@@ -893,10 +894,10 @@ function MatrixTab({ skills, members, getLevel, cycleLevel, addSkill, onGoToMemb
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr>
-                  <th className="text-left font-medium text-gray-500 pb-2 pr-4 min-w-[140px]">
+                  <th className="text-left font-medium text-gray-500 pb-2 pr-4 min-w-[140px] sticky left-0 bg-white z-10 border-r border-gray-100">
                     Member
                   </th>
-                  {skills.map(s => (
+                  {sortedSkills.map(s => (
                     <th key={s} className="font-medium text-gray-500 pb-2 px-1 text-center min-w-[80px]">
                       <span className="block text-xs truncate max-w-[80px]" title={s}>{s}</span>
                     </th>
@@ -911,9 +912,9 @@ function MatrixTab({ skills, members, getLevel, cycleLevel, addSkill, onGoToMemb
                   const count = skills.filter(s => getLevel(m, s) > 0).length
                   const pct   = skills.length ? Math.round((count / skills.length) * 100) : 0
                   return (
-                    <tr key={m} className="hover:bg-gray-50/50">
-                      <td className="py-1.5 pr-4 font-medium text-gray-900">{m}</td>
-                      {skills.map(s => {
+                    <tr key={m} className="group hover:bg-gray-50/50">
+                      <td className="py-1.5 pr-4 font-medium text-gray-900 sticky left-0 bg-white group-hover:bg-gray-50 z-10 border-r border-gray-100">{m}</td>
+                      {sortedSkills.map(s => {
                         const lv = getLevel(m, s)
                         return (
                           <td key={s} className="py-1 px-1 text-center">
@@ -942,8 +943,8 @@ function MatrixTab({ skills, members, getLevel, cycleLevel, addSkill, onGoToMemb
               </tbody>
               <tfoot className="border-t-2 border-gray-100">
                 <tr>
-                  <td className="pt-2 pr-4 text-xs font-medium text-gray-500">Coverage</td>
-                  {skills.map(s => {
+                  <td className="pt-2 pr-4 text-xs font-medium text-gray-500 sticky left-0 bg-white z-10 border-r border-gray-100">Coverage</td>
+                  {sortedSkills.map(s => {
                     const count = members.filter(m => getLevel(m, s) > 0).length
                     const pct   = members.length ? Math.round((count / members.length) * 100) : 0
                     return (
