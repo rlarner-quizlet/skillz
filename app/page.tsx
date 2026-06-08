@@ -52,7 +52,9 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
 type Tab = 'matrix' | 'gaps' | 'members' | 'projects' | 'manage'
 type Proficiency = 0 | 1 | 2 | 3
-type ProjectAssignments = Record<string, { skills: string[]; members: string[] }>
+type ParticipationLevel = 'interested' | 'active' | 'lead'
+type ProjectMemberAssignments = Record<string, ParticipationLevel>
+type ProjectAssignments = Record<string, { skills: string[]; members: ProjectMemberAssignments }>
 
 const TAB_TO_PATH: Record<Tab, string> = {
   matrix: '/skill-matrix',
@@ -79,6 +81,7 @@ interface AppState {
   matrix: Record<string, Proficiency>
   locations: string[]
   memberLocations: Record<string, string>
+  projectLinks: Record<string, string>
 }
 
 interface SkillMatrixExport {
@@ -96,6 +99,28 @@ interface DataIoResult {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const LEVELS = ['None', 'Learning', 'Good', 'Expert'] as const
+
+const PARTICIPATION_LEVELS: ParticipationLevel[] = ['interested', 'active', 'lead']
+const PARTICIPATION_RANK: Record<ParticipationLevel, number> = { interested: 1, active: 2, lead: 3 }
+const PARTICIPATION_LABEL: Record<ParticipationLevel, string> = {
+  interested: 'Interested',
+  active: 'Active',
+  lead: 'Lead',
+}
+const PARTICIPATION_BADGE: Record<ParticipationLevel, string> = {
+  interested: 'bg-amber-50 text-amber-700 border-amber-200',
+  active: 'bg-green-50 text-green-700 border-green-200',
+  lead: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+}
+const PARTICIPATION_CYCLE: (ParticipationLevel | null)[] = [null, 'interested', 'active', 'lead']
+function nextParticipation(current: ParticipationLevel | undefined): ParticipationLevel | undefined {
+  const idx = PARTICIPATION_CYCLE.indexOf(current ?? null)
+  const next = PARTICIPATION_CYCLE[(idx + 1) % PARTICIPATION_CYCLE.length]
+  return next ?? undefined
+}
+function isParticipationLevel(value: unknown): value is ParticipationLevel {
+  return value === 'interested' || value === 'active' || value === 'lead'
+}
 
 const LEVEL_ICON_SRC: Record<Proficiency, string> = {
   0: '/levels/none.png',
@@ -146,7 +171,7 @@ const AUTOSAVE_INTERVAL_MS = 60_000
 const DEFAULT_PROJECT_CAPACITY = 1
 const TECH_DESIGN_PROJECT_CAPACITY = 2
 const mk = (m: string, s: string) => `${m}||${s}`
-const EMPTY: AppState = { skills: [], members: [], projects: [], projectAssignments: {}, matrix: {}, locations: [], memberLocations: {} }
+const EMPTY: AppState = { skills: [], members: [], projects: [], projectAssignments: {}, matrix: {}, locations: [], memberLocations: {}, projectLinks: {} }
 const IMPORTED_SKILL_LEVEL: Proficiency = 2
 const loadedTeamSession = {
   name: null as string | null,
@@ -238,10 +263,19 @@ function normalizeProjectAssignments(value: unknown): ProjectAssignments {
     if (!config || typeof config !== 'object') return
     const data = config as { skills?: unknown; members?: unknown }
     const skills = Array.isArray(data.skills) ? data.skills.filter(v => typeof v === 'string') : []
-    const members = Array.isArray(data.members) ? data.members.filter(v => typeof v === 'string') : []
+    const members: ProjectMemberAssignments = {}
+    if (Array.isArray(data.members)) {
+      data.members.forEach(name => {
+        if (typeof name === 'string') members[name] = 'active'
+      })
+    } else if (data.members && typeof data.members === 'object') {
+      Object.entries(data.members as Record<string, unknown>).forEach(([name, level]) => {
+        if (isParticipationLevel(level)) members[name] = level
+      })
+    }
     out[project] = {
       skills: [...new Set(skills)],
-      members: [...new Set(members)],
+      members,
     }
   })
   return out
@@ -280,10 +314,14 @@ function normalizeAppState(value: unknown): AppState {
   const projectAssignments: ProjectAssignments = {}
 
   projects.forEach(project => {
-    const config = rawAssignments[project] ?? { skills: [], members: [] }
+    const config = rawAssignments[project] ?? { skills: [], members: {} }
+    const filteredMembers: ProjectMemberAssignments = {}
+    Object.entries(config.members).forEach(([member, level]) => {
+      if (memberSet.has(member)) filteredMembers[member] = level
+    })
     projectAssignments[project] = {
       skills: config.skills.filter(skill => skillSet.has(skill)),
-      members: config.members.filter(member => memberSet.has(member)),
+      members: filteredMembers,
     }
   })
 
@@ -296,6 +334,18 @@ function normalizeAppState(value: unknown): AppState {
     })
   }
 
+  const projectSet = new Set(projects)
+  const projectLinks: Record<string, string> = {}
+  if (parsed.projectLinks && typeof parsed.projectLinks === 'object') {
+    Object.entries(parsed.projectLinks as Record<string, unknown>).forEach(([project, url]) => {
+      if (!projectSet.has(project)) return
+      if (typeof url !== 'string') return
+      const trimmed = url.trim()
+      if (!trimmed) return
+      projectLinks[project] = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
+    })
+  }
+
   return {
     skills,
     members,
@@ -304,6 +354,48 @@ function normalizeAppState(value: unknown): AppState {
     matrix: normalizeMatrix(parsed.matrix, members, skills),
     locations,
     memberLocations,
+    projectLinks,
+  }
+}
+
+function mergeAppState(prev: AppState, incoming: AppState): AppState {
+  const skills = [...new Set([...prev.skills, ...incoming.skills])]
+  const members = [...new Set([...prev.members, ...incoming.members])]
+  const projects = [...new Set([...prev.projects, ...incoming.projects])]
+  const locations = [...new Set([...prev.locations, ...incoming.locations])]
+
+  const projectAssignments: ProjectAssignments = {}
+  projects.forEach(project => {
+    const prevConfig = prev.projectAssignments[project] ?? { skills: [], members: {} }
+    const incomingConfig = incoming.projectAssignments[project] ?? { skills: [], members: {} }
+    const mergedMembers: ProjectMemberAssignments = { ...prevConfig.members }
+    Object.entries(incomingConfig.members).forEach(([member, level]) => {
+      const existing = mergedMembers[member]
+      mergedMembers[member] = existing && PARTICIPATION_RANK[existing] >= PARTICIPATION_RANK[level]
+        ? existing
+        : level
+    })
+    projectAssignments[project] = {
+      skills: [...new Set([...prevConfig.skills, ...incomingConfig.skills])],
+      members: mergedMembers,
+    }
+  })
+
+  const matrix: Record<string, Proficiency> = { ...prev.matrix }
+  Object.entries(incoming.matrix).forEach(([key, level]) => {
+    const existing = matrix[key] ?? 0
+    matrix[key] = (level > existing ? level : existing) as Proficiency
+  })
+
+  return {
+    skills,
+    members,
+    projects,
+    projectAssignments,
+    matrix,
+    locations,
+    memberLocations: { ...prev.memberLocations, ...incoming.memberLocations },
+    projectLinks: { ...prev.projectLinks, ...incoming.projectLinks },
   }
 }
 
@@ -426,6 +518,7 @@ function HomeContent() {
   const projects = Array.isArray(state.projects) ? state.projects : []
   const locations = Array.isArray(state.locations) ? state.locations : []
   const memberLocations = state.memberLocations && typeof state.memberLocations === 'object' ? state.memberLocations : {}
+  const projectLinks = state.projectLinks && typeof state.projectLinks === 'object' ? state.projectLinks : {}
   const projectAssignments = normalizeProjectAssignments(state.projectAssignments)
   const matrix = state.matrix && typeof state.matrix === 'object' ? state.matrix : {}
 
@@ -554,15 +647,17 @@ function HomeContent() {
         if (!('data' in parsed)) {
           return { ok: false, message: 'Missing snapshot data.' }
         }
-        setState(normalizeAppState(parsed.data))
-        return { ok: true, message: `Imported autosave v${parsed.version}.` }
+        const incoming = normalizeAppState(parsed.data)
+        setState(prev => mergeAppState(prev, incoming))
+        return { ok: true, message: `Merged autosave v${parsed.version}.` }
       }
 
-      setState(normalizeAppState(parsed))
-      return { ok: true, message: 'Imported JSON app data.' }
+      const incoming = normalizeAppState(parsed)
+      setState(prev => mergeAppState(prev, incoming))
+      return { ok: true, message: 'Merged JSON app data.' }
     } catch {
       importMembersWithSkills(trimmed)
-      return { ok: true, message: 'Imported CSV members and skills.' }
+      return { ok: true, message: 'Merged CSV members and skills.' }
     }
   }
 
@@ -594,9 +689,11 @@ function HomeContent() {
       const prevAssignments = normalizeProjectAssignments(prev.projectAssignments)
       const nextAssignments: ProjectAssignments = {}
       Object.entries(prevAssignments).forEach(([project, config]) => {
+        const nextMembers = { ...config.members }
+        delete nextMembers[name]
         nextAssignments[project] = {
           ...config,
-          members: config.members.filter(m => m !== name),
+          members: nextMembers,
         }
       })
       const nextMemberLocations = { ...(prev.memberLocations ?? {}) }
@@ -646,11 +743,26 @@ function HomeContent() {
       const existingProjects = Array.isArray(prev.projects) ? prev.projects : []
       const nextAssignments = { ...normalizeProjectAssignments(prev.projectAssignments) }
       delete nextAssignments[name]
+      const nextProjectLinks = { ...(prev.projectLinks ?? {}) }
+      delete nextProjectLinks[name]
       return {
         ...prev,
         projects: existingProjects.filter(p => p !== name),
         projectAssignments: nextAssignments,
+        projectLinks: nextProjectLinks,
       }
+    })
+
+  const setProjectLink = (project: string, url: string) =>
+    setState(prev => {
+      const next = { ...(prev.projectLinks ?? {}) }
+      const trimmed = url.trim()
+      if (!trimmed) {
+        delete next[project]
+      } else {
+        next[project] = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
+      }
+      return { ...prev, projectLinks: next }
     })
 
   const reorderProject = (fromProject: string, toProject: string) =>
@@ -669,7 +781,7 @@ function HomeContent() {
   const toggleProjectSkill = (project: string, skill: string) =>
     setState(prev => {
       const prevAssignments = normalizeProjectAssignments(prev.projectAssignments)
-      const current = prevAssignments[project] ?? { skills: [], members: [] }
+      const current = prevAssignments[project] ?? { skills: [], members: {} }
       const hasSkill = current.skills.includes(skill)
       const nextProject = {
         ...current,
@@ -681,15 +793,15 @@ function HomeContent() {
       }
     })
 
-  const toggleProjectMember = (project: string, member: string) =>
+  const cycleProjectMember = (project: string, member: string) =>
     setState(prev => {
       const prevAssignments = normalizeProjectAssignments(prev.projectAssignments)
-      const current = prevAssignments[project] ?? { skills: [], members: [] }
-      const hasMember = current.members.includes(member)
-      const nextProject = {
-        ...current,
-        members: hasMember ? current.members.filter(m => m !== member) : [...current.members, member],
-      }
+      const current = prevAssignments[project] ?? { skills: [], members: {} }
+      const next = nextParticipation(current.members[member])
+      const nextMembers = { ...current.members }
+      if (next) nextMembers[member] = next
+      else delete nextMembers[member]
+      const nextProject = { ...current, members: nextMembers }
       return {
         ...prev,
         projectAssignments: { ...prevAssignments, [project]: nextProject },
@@ -697,9 +809,10 @@ function HomeContent() {
     })
 
   const resetAll = () =>
-    setState({ skills: [], members: [], projects: [], projectAssignments: {}, matrix: {}, locations: [], memberLocations: {} })
+    setState({ skills: [], members: [], projects: [], projectAssignments: {}, matrix: {}, locations: [], memberLocations: {}, projectLinks: {} })
 
-  const uncovered = skills.filter(s => !members.some(m => getLevel(m, s) > 0)).length
+  const uncoveredSkillList = skills.filter(s => !members.some(m => getLevel(m, s) > 0))
+  const uncovered = uncoveredSkillList.length
 
   const TABS: { id: Tab; label: string }[] = [
     { id: 'matrix',  label: 'Skill matrix' },
@@ -744,13 +857,34 @@ function HomeContent() {
         {(members.length > 0 || skills.length > 0 || projects.length > 0) && (
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
             {[
-              { label: 'Team members',    value: members.length, warn: false },
-              { label: 'Skills tracked',  value: skills.length,  warn: false },
-              { label: 'Projects',        value: projects.length, warn: false },
-              { label: 'Uncovered skills',value: uncovered,      warn: uncovered > 0 },
-            ].map(({ label, value, warn }) => (
-              <div key={label} className="bg-white rounded-xl border border-gray-100 p-4">
-                <p className="text-xs text-gray-500 mb-1">{label}</p>
+              { label: 'Team members',    value: members.length, warn: false, tooltip: undefined },
+              { label: 'Skills tracked',  value: skills.length,  warn: false, tooltip: undefined },
+              { label: 'Projects',        value: projects.length, warn: false, tooltip: undefined },
+              {
+                label: 'Uncovered skills',
+                value: uncovered,
+                warn: uncovered > 0,
+                tooltip: uncovered > 0
+                  ? `Skills that no team member has at any level:\n\n${uncoveredSkillList.join('\n')}`
+                  : 'Skills that no team member has at any level.',
+              },
+            ].map(({ label, value, warn, tooltip }) => (
+              <div
+                key={label}
+                title={tooltip}
+                className={`bg-white rounded-xl border border-gray-100 p-4 ${tooltip ? 'cursor-help' : ''}`}
+              >
+                <p className="text-xs text-gray-500 mb-1 inline-flex items-center gap-1">
+                  {label}
+                  {tooltip && (
+                    <span
+                      aria-hidden
+                      className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full border border-gray-300 text-[10px] text-gray-500"
+                    >
+                      ?
+                    </span>
+                  )}
+                </p>
                 <p className={`text-2xl font-semibold ${warn ? 'text-amber-600' : 'text-gray-900'}`}>
                   {value}
                 </p>
@@ -825,7 +959,7 @@ function HomeContent() {
                 projectAssignments={projectAssignments}
                 getLevel={getLevel}
                 toggleProjectSkill={toggleProjectSkill}
-                toggleProjectMember={toggleProjectMember}
+                cycleProjectMember={cycleProjectMember}
                 addProject={addProject}
                 removeProject={removeProject}
                 reorderProject={reorderProject}
@@ -833,6 +967,8 @@ function HomeContent() {
                 onFocusHandled={clearFocusProject}
                 memberLocations={memberLocations}
                 onGoToManage={() => navigateToTab('manage')}
+                projectLinks={projectLinks}
+                setProjectLink={setProjectLink}
               />
             )}
             {tab === 'manage'  && (
@@ -1253,8 +1389,8 @@ function MembersTab({ members, skills, projects, projectAssignments, getLevel, c
               const covered     = skillLevels.filter(x => x.lv > 0).length
               const pct         = skills.length ? Math.round((covered / skills.length) * 100) : 0
               const assignedProjects = projects.filter(project => {
-                const assignedMembers = projectAssignments[project]?.members ?? []
-                return assignedMembers.includes(m)
+                const assignedMembers = projectAssignments[project]?.members ?? {}
+                return m in assignedMembers
               })
 
               return (
@@ -1313,17 +1449,22 @@ function MembersTab({ members, skills, projects, projectAssignments, getLevel, c
                     </p>
                     {assignedProjects.length > 0 ? (
                       <div className="flex flex-wrap gap-1.5">
-                        {assignedProjects.map(project => (
-                          <button
-                            key={project}
-                            type="button"
-                            onClick={() => onProjectClick(project)}
-                            title={`View ${project} in Projects tab`}
-                            className="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 hover:underline transition-colors cursor-pointer"
-                          >
-                            {project}
-                          </button>
-                        ))}
+                        {assignedProjects.map(project => {
+                          const level = projectAssignments[project]?.members[m]
+                          const badge = level ? PARTICIPATION_BADGE[level] : 'bg-gray-50 text-gray-700 border-gray-200'
+                          return (
+                            <button
+                              key={project}
+                              type="button"
+                              onClick={() => onProjectClick(project)}
+                              title={level ? `${PARTICIPATION_LABEL[level]} on ${project}` : `View ${project} in Projects tab`}
+                              className={`text-xs px-2 py-0.5 rounded-full border hover:brightness-95 hover:underline transition-colors cursor-pointer ${badge}`}
+                            >
+                              {project}
+                              {level && <span className="opacity-80"> · {PARTICIPATION_LABEL[level]}</span>}
+                            </button>
+                          )
+                        })}
                       </div>
                     ) : (
                       <p className="text-xs text-gray-400">
@@ -1386,7 +1527,7 @@ function ProjectsTab({
   projectAssignments,
   getLevel,
   toggleProjectSkill,
-  toggleProjectMember,
+  cycleProjectMember,
   addProject,
   removeProject,
   reorderProject,
@@ -1394,6 +1535,8 @@ function ProjectsTab({
   onFocusHandled,
   memberLocations,
   onGoToManage,
+  projectLinks,
+  setProjectLink,
 }: {
   projects: string[]
   skills: string[]
@@ -1401,7 +1544,7 @@ function ProjectsTab({
   projectAssignments: ProjectAssignments
   getLevel: (m: string, s: string) => Proficiency
   toggleProjectSkill: (project: string, skill: string) => void
-  toggleProjectMember: (project: string, member: string) => void
+  cycleProjectMember: (project: string, member: string) => void
   addProject: (name: string) => void
   removeProject: (name: string) => void
   reorderProject: (fromProject: string, toProject: string) => void
@@ -1409,6 +1552,8 @@ function ProjectsTab({
   onFocusHandled: () => void
   memberLocations: Record<string, string>
   onGoToManage: () => void
+  projectLinks: Record<string, string>
+  setProjectLink: (project: string, url: string) => void
 }) {
   const [projectInput, setProjectInput] = useState('')
   const [draggingProject, setDraggingProject] = useState<string | null>(null)
@@ -1429,6 +1574,12 @@ function ProjectsTab({
   const handleRemoveProject = (project: string) => {
     if (!window.confirm(`Delete project "${project}"? This also removes its skill and member assignments.`)) return
     removeProject(project)
+  }
+  const handleEditLink = (project: string) => {
+    const current = projectLinks[project] ?? ''
+    const next = window.prompt(`Link for "${project}" (e.g. JIRA epic URL). Leave empty to remove.`, current)
+    if (next === null) return
+    setProjectLink(project, next)
   }
   const hasProjects = projects.length > 0
   const sortedSkills = [...skills].sort((a, b) => a.localeCompare(b))
@@ -1451,21 +1602,29 @@ function ProjectsTab({
         </p>
       </div>
       {hasProjects ? projects.map(project => {
-        const config = projectAssignments[project] ?? { skills: [], members: [] }
+        const config = projectAssignments[project] ?? { skills: [], members: {} }
+        const assignedMemberNames = Object.keys(config.members)
         const uncoveredSkills = config.skills.filter(skill => {
-          const assignedLevels = config.members.map(member => getLevel(member, skill))
+          const assignedLevels = assignedMemberNames.map(member => getLevel(member, skill))
           const expertCount = assignedLevels.filter(level => level === 3).length
           const competentCount = assignedLevels.filter(level => level >= 2).length
           return expertCount === 0 && competentCount < 2
         })
 
+        const learningOnlySkills = new Set(
+          uncoveredSkills.filter(skill => !members.some(m => getLevel(m, skill) >= 2))
+        )
+
         const skilledAvailableMembers = sortedMembers
           .filter(member => {
-            if (config.members.includes(member)) return false
+            if (member in config.members) return false
+            const matchedSkills = uncoveredSkills.filter(skill => getLevel(member, skill) > 0)
+            if (matchedSkills.length === 0) return false
+
             const assignedProjectCount = projects.reduce((count, otherProject) => {
               if (otherProject === project) return count
-              const otherMembers = projectAssignments[otherProject]?.members ?? []
-              return otherMembers.includes(member) ? count + 1 : count
+              const otherMembers = projectAssignments[otherProject]?.members ?? {}
+              return member in otherMembers ? count + 1 : count
             }, 0)
             const hasUncoveredTechDesign = uncoveredSkills.some(isTechDesignSkill)
             const canCoverTechDesign = skills.some(
@@ -1474,9 +1633,11 @@ function ProjectsTab({
             const maxProjectCapacity = hasUncoveredTechDesign && canCoverTechDesign
               ? TECH_DESIGN_PROJECT_CAPACITY
               : DEFAULT_PROJECT_CAPACITY
-            if (assignedProjectCount >= maxProjectCapacity) return false
+            if (assignedProjectCount < maxProjectCapacity) return true
 
-            return uncoveredSkills.some(skill => getLevel(member, skill) > 0)
+            if (matchedSkills.some(skill => getLevel(member, skill) === 3)) return true
+
+            return matchedSkills.some(skill => learningOnlySkills.has(skill))
           })
           .map(member => {
             const maxLevel = uncoveredSkills.reduce<Proficiency>((max, skill) => {
@@ -1507,22 +1668,49 @@ function ProjectsTab({
           >
             <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
               <div>
-                <h3 className="text-sm font-semibold text-gray-900">{project}</h3>
+                <h3 className="text-sm font-semibold text-gray-900 inline-flex items-center gap-1.5">
+                  {project}
+                  {projectLinks[project] && (
+                    <a
+                      href={projectLinks[project]}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={event => event.stopPropagation()}
+                      onMouseDown={event => event.stopPropagation()}
+                      title={projectLinks[project]}
+                      className="text-xs text-blue-600 hover:underline font-normal"
+                    >
+                      ↗
+                    </a>
+                  )}
+                </h3>
                 <p className="text-xs text-gray-500">
                   {config.skills.length} required skill{config.skills.length === 1 ? '' : 's'} ·{' '}
-                  {config.members.length} team member{config.members.length === 1 ? '' : 's'}
+                  {assignedMemberNames.length} team member{assignedMemberNames.length === 1 ? '' : 's'}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={event => {
-                  event.stopPropagation()
-                  handleRemoveProject(project)
-                }}
-                className="px-2.5 py-1 text-xs text-red-700 border border-red-200 rounded-md bg-white hover:bg-red-50 transition-colors"
-              >
-                Delete project
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={event => {
+                    event.stopPropagation()
+                    handleEditLink(project)
+                  }}
+                  className="px-2.5 py-1 text-xs text-gray-700 border border-gray-200 rounded-md bg-white hover:bg-gray-50 transition-colors"
+                >
+                  {projectLinks[project] ? 'Edit link' : 'Add link'}
+                </button>
+                <button
+                  type="button"
+                  onClick={event => {
+                    event.stopPropagation()
+                    handleRemoveProject(project)
+                  }}
+                  className="px-2.5 py-1 text-xs text-red-700 border border-red-200 rounded-md bg-white hover:bg-red-50 transition-colors"
+                >
+                  Delete project
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -1543,8 +1731,8 @@ function ProjectsTab({
                   <div className="flex flex-wrap gap-2">
                     {sortedSkills.map(skill => {
                       const selected = config.skills.includes(skill)
-                      const assignedMembersWithSkill = config.members.filter(member => getLevel(member, skill) > 0)
-                      const assignedLevels = config.members.map(member => getLevel(member, skill))
+                      const assignedMembersWithSkill = assignedMemberNames.filter(member => getLevel(member, skill) > 0)
+                      const assignedLevels = assignedMemberNames.map(member => getLevel(member, skill))
                       const maxAssignedLevel = assignedLevels.reduce<Proficiency>((max, level) => {
                         return level > max ? level : max
                       }, 0)
@@ -1584,6 +1772,17 @@ function ProjectsTab({
 
               <div>
                 <p className="text-xs font-medium text-gray-600 mb-2">Associated team members</p>
+                <p className="text-[11px] text-gray-400 mb-2">
+                  Click to cycle:{' '}
+                  {PARTICIPATION_LEVELS.map((lvl, i) => (
+                    <span key={lvl}>
+                      {i > 0 && ' → '}
+                      <span className={`inline-flex items-center px-1.5 rounded-full border ${PARTICIPATION_BADGE[lvl]}`}>
+                        {PARTICIPATION_LABEL[lvl]}
+                      </span>
+                    </span>
+                  ))}
+                </p>
                 {members.length === 0 ? (
                   <p className="text-xs text-gray-400">
                     No team members yet. Add members in the{' '}
@@ -1598,21 +1797,26 @@ function ProjectsTab({
                 ) : (
                   <div className="flex flex-wrap gap-2">
                     {sortedMembers.map(member => {
-                      const selected = config.members.includes(member)
+                      const level = config.members[member]
                       const location = memberLocations[member]
+                      const nextLabel = nextParticipation(level)
+                      const tooltip = level
+                        ? `${PARTICIPATION_LABEL[level]} — click for ${nextLabel ? PARTICIPATION_LABEL[nextLabel] : 'unassigned'}`
+                        : `Unassigned — click for ${nextLabel ? PARTICIPATION_LABEL[nextLabel] : ''}`
                       return (
                         <button
                           key={member}
                           type="button"
-                          onClick={() => toggleProjectMember(project, member)}
+                          onClick={() => cycleProjectMember(project, member)}
+                          title={tooltip}
                           className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
-                            selected
-                              ? 'bg-green-50 text-green-700 border-green-200'
+                            level
+                              ? PARTICIPATION_BADGE[level]
                               : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
                           }`}
                         >
-                          {selected ? '✓ ' : ''}
                           {member}
+                          {level && <span className="opacity-80"> · {PARTICIPATION_LABEL[level]}</span>}
                           {location && <span className="text-gray-500"> · {location}</span>}
                         </button>
                       )
@@ -1642,8 +1846,8 @@ function ProjectsTab({
                         <button
                           key={member}
                           type="button"
-                          onClick={() => toggleProjectMember(project, member)}
-                          title={`${member}: ${LEVELS[maxLevel]} across required skills`}
+                          onClick={() => cycleProjectMember(project, member)}
+                          title={`${member}: ${LEVELS[maxLevel]} across required skills — click to add as Interested`}
                           className={`text-xs px-2.5 py-1 rounded-full border transition-colors hover:brightness-95 ${MEMBER_EXPERTISE_BADGE[maxLevel]}`}
                         >
                           + {member}
