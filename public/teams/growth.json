@@ -1,7 +1,7 @@
 {
   "format": "skill-matrix-autosave",
   "version": 1,
-  "exportedAt": "2026-05-22T07:39:32.669Z",
+  "exportedAt": "2026-06-07T07:15:42.722Z",
   "data": {
     "skills": [
       "UI",
@@ -36,7 +36,9 @@
       "Legal",
       "ML",
       "Python",
-      "dbt"
+      "dbt",
+      "SDUI",
+      "ML/Prompts"
     ],
     "members": [
       "Ayelen",
@@ -84,12 +86,14 @@
       "sGTM",
       "SEO-Optimized Title Tags",
       "Spaced Repetition",
+      "Add To Calendar Test",
       "Streaks",
-      "Canva",
       "Signup Funnel Logging Fixes",
       "Match Results Screen",
       "Mini FC Copy Test",
-      "Add To Calendar Test"
+      "Canva",
+      "Retargeting",
+      "Notifications"
     ],
     "projectAssignments": {
       "Google Classroom Add-On": {
@@ -107,16 +111,18 @@
           "Product",
           "Design",
           "Analytics",
-          "TypeScript"
+          "TypeScript",
+          "Tech Designs"
         ],
-        "members": [
-          "Brian",
-          "Dan W",
-          "Kara",
-          "Scott",
-          "Alyssa",
-          "Amy Ma"
-        ]
+        "members": {
+          "Brian": "active",
+          "Dan W": "active",
+          "Kara": "active",
+          "Scott": "active",
+          "Amy Ma": "active",
+          "Rodri": "active",
+          "Alyssa": "interested"
+        }
       },
       "Discord Integration": {
         "skills": [
@@ -128,13 +134,13 @@
           "Periscope",
           "Product"
         ],
-        "members": [
-          "Coco",
-          "Mike",
-          "Dami",
-          "Ina",
-          "Tano"
-        ]
+        "members": {
+          "Coco": "active",
+          "Mike": "active",
+          "Dami": "active",
+          "Ina": "active",
+          "Tano": "active"
+        }
       },
       "sGTM": {
         "skills": [
@@ -142,13 +148,15 @@
           "k8s/infra/pub/sub",
           "Product"
         ],
-        "members": [
-          "Leila",
-          "Arun",
-          "Bruels",
-          "Hernan",
-          "Romina"
-        ]
+        "members": {
+          "Leila": "active",
+          "Arun": "active",
+          "Bruels": "active",
+          "Hernan": "active",
+          "Romina": "active",
+          "Tano": "active",
+          "Dami": "active"
+        }
       },
       "SEO-Optimized Title Tags": {
         "skills": [
@@ -157,21 +165,36 @@
           "SEO",
           "ML"
         ],
-        "members": [
-          "Nandita",
-          "Takeshi",
-          "Hernan"
-        ]
+        "members": {
+          "Nandita": "active",
+          "Takeshi": "active",
+          "Hernan": "active"
+        }
       },
       "Spaced Repetition": {
         "skills": [
           "TypeScript",
           "Go"
         ],
-        "members": [
-          "Nandita",
-          "Bryce"
-        ]
+        "members": {
+          "Nandita": "active",
+          "Bryce": "active",
+          "Austin": "active"
+        }
+      },
+      "Add To Calendar Test": {
+        "skills": [
+          "Product",
+          "Growthbook",
+          "UI",
+          "TypeScript"
+        ],
+        "members": {
+          "Camille": "active",
+          "Samba": "active",
+          "Dami": "active",
+          "Hernan": "active"
+        }
       },
       "Streaks": {
         "skills": [
@@ -183,34 +206,26 @@
           "Go",
           "WebSockets"
         ],
-        "members": [
-          "Anjumon",
-          "Joel",
-          "Jay",
-          "Samba"
-        ]
-      },
-      "Canva": {
-        "skills": [
-          "Tech Designs",
-          "Product",
-          "Design"
-        ],
-        "members": [
-          "Dami"
-        ]
+        "members": {
+          "Anjumon": "active",
+          "Joel": "active",
+          "Jay": "active",
+          "Samba": "active",
+          "Dami": "active"
+        }
       },
       "Signup Funnel Logging Fixes": {
         "skills": [
           "Analytics",
-          "Logging"
+          "Logging",
+          "WebSockets"
         ],
-        "members": [
-          "Ayelen",
-          "Chris E",
-          "Rodri",
-          "Hernan"
-        ]
+        "members": {
+          "Ayelen": "active",
+          "Chris E": "active",
+          "Rodri": "active",
+          "Hernan": "active"
+        }
       },
       "Match Results Screen": {
         "skills": [
@@ -218,31 +233,53 @@
           "Product",
           "Growthbook"
         ],
-        "members": [
-          "Anjumon",
-          "Ayelen"
-        ]
+        "members": {
+          "Anjumon": "active",
+          "Ayelen": "active"
+        }
       },
       "Mini FC Copy Test": {
         "skills": [
           "Product",
           "Growthbook"
         ],
-        "members": [
-          "Anjumon"
-        ]
+        "members": {
+          "Anjumon": "active"
+        }
       },
-      "Add To Calendar Test": {
+      "Canva": {
         "skills": [
+          "Tech Designs",
           "Product",
-          "Growthbook",
-          "UI",
-          "TypeScript"
+          "Design"
         ],
-        "members": [
-          "Camille",
-          "Samba"
-        ]
+        "members": {
+          "Kara": "active",
+          "Austin": "active",
+          "Dami": "active"
+        }
+      },
+      "Retargeting": {
+        "skills": [
+          "Airflow",
+          "Datadog",
+          "Periscope",
+          "Tech Designs"
+        ],
+        "members": {
+          "Leila": "active",
+          "Romina": "active",
+          "Arun": "active",
+          "Hernan": "active"
+        }
+      },
+      "Notifications": {
+        "skills": [
+          "Tech Designs"
+        ],
+        "members": {
+          "Yang": "active"
+        }
       }
     },
     "matrix": {
@@ -419,7 +456,23 @@
       "Mike||ML": 2,
       "Leila||ML": 1,
       "Bruels||ML": 2,
-      "Nandita||ML": 2
+      "Nandita||ML": 2,
+      "Ayelen||Datadog": 2,
+      "Ayelen||PHP": 2,
+      "Ayelen||Project Management": 2,
+      "Bryce||Tech Designs": 2,
+      "Bryce||Go": 2,
+      "Bryce||Design": 1,
+      "Bryce||SDUI": 1,
+      "Bryce||Product": 1,
+      "Bryce||Periscope": 1,
+      "Bryce||k8s/infra/pub/sub": 2,
+      "Alyssa||Airflow": 0,
+      "Mike||ML/Prompts": 2,
+      "Austin||ML/Prompts": 2,
+      "Nandita||ML/Prompts": 2,
+      "Leila||ML/Prompts": 1,
+      "Bruels||ML/Prompts": 2
     },
     "locations": [
       "London",
@@ -464,6 +517,18 @@
       "Vincent": "NYC",
       "Yang": "SF",
       "Hernan": "Argentina"
+    },
+    "projectLinks": {
+      "Google Classroom Add-On": "https://quizlet.atlassian.net/jira/software/c/projects/GROW/boards/2558/backlog?issueParent=218644",
+      "Discord Integration": "https://quizlet.atlassian.net/jira/software/c/projects/GROW/boards/2558/backlog?issueParent=218645%2C263949",
+      "sGTM": "https://quizlet.atlassian.net/jira/software/c/projects/GROW/boards/2558/backlog?issueParent=219418",
+      "SEO-Optimized Title Tags": "https://quizlet.atlassian.net/jira/software/c/projects/GROW/boards/2558/backlog?issueParent=267748",
+      "Spaced Repetition": "https://quizlet.atlassian.net/browse/LEARN-2203",
+      "Retargeting": "https://quizlet.atlassian.net/jira/software/c/projects/GROW/boards/2558/backlog?issueParent=266201",
+      "Notifications": "https://quizlet.atlassian.net/jira/software/c/projects/GROW/boards/2558/backlog?issueParent=260758%2C268201%2C275575",
+      "Signup Funnel Logging Fixes": "https://quizlet.atlassian.net/jira/software/c/projects/GROW/boards/2558/backlog?issueParent=266772",
+      "Match Results Screen": "https://quizlet.atlassian.net/jira/software/c/projects/GROW/boards/2558/backlog?issueParent=271682",
+      "Add To Calendar Test": "https://quizlet.atlassian.net/jira/software/c/projects/GROW/boards/2558/backlog?issueParent=277653"
     }
   }
 }
